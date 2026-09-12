@@ -92,9 +92,14 @@ jobs:
 
       # Se etiqueta con el SHA además de `latest`: es lo que permite volver
       # atrás cambiando una variable, sin reconstruir nada.
+      # El contexto es apps/api y NO la raíz: este Dockerfile copia
+      # `requirements/` y `.` en rutas relativas al directorio de la API.
+      # Con el contexto en la raíz falla con «/requirements: not found».
+      # El del sitio es al revés —copia apps/web/ e infra/nginx/— y por eso
+      # ese sí se construye desde la raíz. No son intercambiables.
       - uses: docker/build-push-action@v6
         with:
-          context: .
+          context: apps/api
           file: infra/docker/api.Dockerfile
           target: prod
           push: true
