@@ -33,6 +33,18 @@ jobs:
       run:
         working-directory: apps/api
 
+    # En local las pruebas corren dentro del contenedor, que carga el .env
+    # del proyecto. Aquí no hay .env, y `config/env.py` aborta el arranque
+    # de Django si falta una variable obligatoria — que es justo lo que
+    # queremos que haga, así que se declara aquí en vez de relajar aquello.
+    #
+    # Es la ÚNICA obligatoria: todas las demás tienen valor por defecto.
+    env:
+      # Clave de juguete, sin ningún valor fuera de esta ejecución.
+      # Producción exige una de verdad y rechaza las de menos de 50
+      # caracteres — ver la comprobación de arranque en settings/prod.py.
+      DJANGO_SECRET_KEY: clave-solo-para-pruebas-de-ci-sin-valor-real
+
     steps:
       - uses: actions/checkout@v4
 
