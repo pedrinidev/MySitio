@@ -1,0 +1,251 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pageTitle } from '../../lib/site';
+import SectionHeading from '../ui/SectionHeading.astro';
+import { getProfile } from '../../lib/api';
+import { useTranslations, ROUTES, localePath } from '../../lib/i18n';
+import type { Language } from '../../lib/types';
+
+interface Props {
+  lang: Language;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const other: Language = lang === 'es' ? 'en' : 'es';
+const profile = await getProfile(lang);
+
+const formatPeriod = (start: string, end: string | null) => {
+  const options = { year: 'numeric', month: 'short' } as const;
+  const locale = lang === 'es' ? 'es-BO' : 'en-GB';
+  const from = new Date(start).toLocaleDateString(locale, options);
+  const to = end ? new Date(end).toLocaleDateString(locale, options) : t.about.current;
+  return `${from} — ${to}`;
+};
+---
+
+<BaseLayout
+  lang={lang}
+  title={pageTitle(t.about.title)}
+  description={profile.headline}
+  alternatePath={localePath(other, ROUTES[other].about)}
+>
+  <div class="section container-content">
+    <SectionHeading level={1} eyebrow={t.nav.about} title={t.about.title} />
+
+    <div class="about-grid">
+      <div class="about-bio prose" data-reveal set:html={profile.bio_html} />
+
+      <aside class="about-side" data-reveal>
+        <dl class="facts">
+          <dt>{t.contact.email}</dt>
+          <dd><a href={`mailto:${profile.email}`}>{profile.email}</a></dd>
+          <dt>{t.contact.availability}</dt>
+          <dd>{profile.availability}</dd>
+        </dl>
+
+        {
+          profile.cv_url && (
+            <a href={profile.cv_url} class="btn-ghost" download>
+              {t.about.downloadCv}
+            </a>
+          )
+        }
+
+        <ul class="socials">
+          {
+            profile.socials.map((social) => (
+              <li>
+                <a href={social.url} rel="noopener noreferrer" target="_blank">
+                  {social.name}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </aside>
+    </div>
+
+    <section class="about-block">
+      <h2 data-reveal>{t.about.skills}</h2>
+      <div class="skill-groups">
+        {
+          profile.skill_groups.map((group, index) => (
+            <div class="skill-group" data-reveal data-reveal-delay={index * 0.05}>
+              <h3>{group.name}</h3>
+              <ul>
+                {group.skills.map((skill) => (
+                  <li class={skill.is_primary ? 'is-primary' : ''}>{skill.name}</li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    {
+      profile.experience.length > 0 && (
+        <section class="about-block">
+          <h2 data-reveal>{t.about.experience}</h2>
+          <ol class="timeline">
+            {profile.experience.map((item) => (
+              <li data-reveal>
+                <p class="timeline-period">{formatPeriod(item.start_date, item.end_date)}</p>
+                <h3>{item.role}</h3>
+                <p class="timeline-org">{item.organization}</p>
+                {item.description && <p class="timeline-desc">{item.description}</p>}
+                {item.highlights.length > 0 && (
+                  <ul class="timeline-highlights">
+                    {item.highlights.map((highlight) => (
+                      <li>{highlight}</li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .about-grid {
+    display: grid;
+    gap: 3rem;
+  }
+  .about-side {
+    display: grid;
+    gap: 1.5rem;
+    align-content: start;
+    padding: 1.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-alt);
+    height: fit-content;
+  }
+  .facts dt {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+  }
+  .facts dd {
+    margin-block: 0.35rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+  .facts dd a {
+    color: var(--color-accent);
+  }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding-inline: 1.25rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    font-size: 0.875rem;
+  }
+  .socials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    list-style: none;
+    font-size: 0.875rem;
+  }
+  .socials a {
+    color: var(--color-text-muted);
+    padding-block: 0.5rem;
+  }
+  .socials a:hover {
+    color: var(--color-accent);
+  }
+
+  .about-block {
+    margin-top: 5rem;
+  }
+  .about-block h2 {
+    font-size: var(--text-title);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 2rem;
+  }
+
+  .skill-groups {
+    display: grid;
+    gap: 2rem;
+  }
+  .skill-group h3 {
+    font-size: 0.8125rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+    margin-bottom: 0.85rem;
+  }
+  .skill-group ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+  }
+  .skill-group li {
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+  }
+  .skill-group li.is-primary {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .timeline {
+    list-style: none;
+    display: grid;
+    gap: 2.5rem;
+    border-left: 2px solid var(--color-line);
+    padding-left: 1.75rem;
+  }
+  .timeline-period {
+    font-size: 0.8125rem;
+    color: var(--color-text-faint);
+  }
+  .timeline h3 {
+    margin-top: 0.35rem;
+    font-size: 1.1875rem;
+    font-weight: 600;
+  }
+  .timeline-org {
+    color: var(--color-accent);
+    font-size: 0.9375rem;
+  }
+  .timeline-desc {
+    margin-top: 0.75rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+  .timeline-highlights {
+    margin-top: 0.85rem;
+    padding-left: 1.1rem;
+    list-style: disc;
+    color: var(--color-text-muted);
+    font-size: 0.9375rem;
+  }
+  .timeline-highlights li + li {
+    margin-top: 0.35rem;
+  }
+
+  @media (min-width: 900px) {
+    .about-grid {
+      grid-template-columns: 1fr 20rem;
+      gap: 4rem;
+    }
+    .skill-groups {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

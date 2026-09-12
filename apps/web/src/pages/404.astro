@@ -1,0 +1,80 @@
+---
+/**
+ * Página 404.
+ *
+ * Es estática y sin idioma: se sirve tanto para /es/lo-que-sea como para
+ * /en/whatever, así que ofrece las dos salidas. Un 404 bilingüe que obliga a
+ * elegir es mejor que uno en un idioma que el visitante quizá no lee.
+ */
+import '../styles/tokens.css';
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>404 — PedriniDev</title>
+    <meta name="description" content="La página que buscás no existe en pedrinidev.com." />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main class="notfound">
+      <p class="code">404</p>
+      <h1>Esta página no existe</h1>
+      <p class="sub" lang="en">This page doesn't exist.</p>
+      <div class="actions">
+        <a href="/es/">Ir al inicio</a>
+        <a href="/en/" lang="en">Go home</a>
+      </div>
+    </main>
+
+    <style>
+      .notfound {
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 0.75rem;
+        min-height: 100vh;
+        padding: 2rem;
+        text-align: center;
+      }
+      .code {
+        font-size: 5rem;
+        font-weight: 600;
+        letter-spacing: -0.05em;
+        line-height: 1;
+        color: var(--color-text-faint);
+      }
+      .notfound h1 {
+        font-size: var(--text-title);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .sub {
+        color: var(--color-text-muted);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+      .actions a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.75rem;
+        padding-inline: 1.5rem;
+        border: 1px solid var(--color-line-strong);
+        border-radius: 999px;
+        font-size: 0.9375rem;
+      }
+      .actions a:first-child {
+        background: var(--color-accent);
+        border-color: var(--color-accent);
+        color: #fff;
+      }
+    </style>
+  </body>
+</html>

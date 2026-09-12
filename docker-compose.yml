@@ -1,0 +1,59 @@
+# Entorno de DESARROLLO.
+# Producción vive en infra/compose.prod.yml — son archivos distintos a propósito:
+# mezclarlos en uno solo con overrides es la vía rápida a desplegar DEBUG=True.
+name: mysite-dev
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: ../../infra/docker/api.Dockerfile
+      target: dev
+    container_name: mysite-api-dev
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      # Bind-mount del código: editar en el Mac recarga dentro del contenedor.
+      - ./apps/api:/app
+      # Volumen con nombre para la base de datos: sobrevive a docker compose down.
+      - api_data:/data
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      # En macOS no existe /proc, así que en desarrollo psutil mide el
+      # contenedor. En producción se montan las rutas reales del host.
+      HOST_PROC_PATH: ""
+      HOST_ROOT_PATH: "/"
+      # El navegador llega a /media/ por localhost, no por el nombre de red
+      # del contenedor. Sin esto las portadas salen rotas en desarrollo.
+      PUBLIC_MEDIA_BASE_URL: http://localhost:8000
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  web:
+    image: node:24-alpine
+    container_name: mysite-web-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./apps/web:/app
+      # Volumen anónimo: evita que node_modules del Mac pise el del contenedor
+      # (arquitecturas y binarios nativos distintos).
+      - /app/node_modules
+    environment:
+      # El navegador y el contenedor no alcanzan la API por la misma
+      # dirección. PUBLIC_* viaja al cliente; INTERNAL_* se queda en Node.
+      PUBLIC_API_URL: http://localhost:8000/api/v1
+      INTERNAL_API_URL: http://api:8000/api/v1
+      PUBLIC_SITE_URL: http://localhost:4321
+      ASTRO_TELEMETRY_DISABLED: "1"
+    ports:
+      - "4321:4321"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  api_data:

@@ -1,0 +1,118 @@
+# Producción — se ejecuta EN EL DROPLET.
+#
+# El droplet no construye nada: descarga imágenes ya publicadas en GHCR por
+# GitHub Actions y las levanta. Todo el trabajo caro ocurrió antes.
+#
+#   docker compose -f compose.prod.yml pull
+#   docker compose -f compose.prod.yml up -d
+name: mysite
+
+services:
+  api:
+    image: ${API_IMAGE:-ghcr.io/pedrinidev/mysitio-api:latest}
+    container_name: mysite-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      # Rutas del host montadas más abajo: sin esto, psutil mediría el
+      # contenedor y el dashboard mentiría. Ver docs/architecture.md, §7.
+      HOST_PROC_PATH: /host/proc
+      HOST_ROOT_PATH: /host/root
+    volumes:
+      - api_data:/data
+      # Solo lectura, y solo lo imprescindible para las métricas.
+      # Riesgo asumido y documentado en ADR-008: expone la lista de procesos
+      # del host al contenedor. Aceptable en un droplet de un solo dueño.
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    # Sin `ports`: la API NO se expone al exterior. Solo Nginx habla con ella
+    # por la red interna de Docker. Un puerto 8000 abierto sería una puerta
+    # trasera que se salta el TLS y la limitación de peticiones.
+    expose:
+      - "8000"
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/v1/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    # Rotación de logs. Sin esto, los JSON de Docker llenan los 10 GB de disco
+    # en semanas: es la causa más común de caída en droplets pequeños.
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    deploy:
+      resources:
+        limits:
+          # Tope duro: si Django se desmadra, el OOM killer se lo lleva a él
+          # y no a Nginx. Un sitio que sirve HTML sin API es mucho mejor que
+          # un servidor entero caído.
+          memory: 260M
+
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/pedrinidev/mysitio-web:latest}
+    environment:
+      # Nginx necesita saber qué ruta reenviar al admin. Sale del mismo .env
+      # que usa Django, así que las dos mitades no pueden desincronizarse.
+      ADMIN_PATH: ${DJANGO_ADMIN_URL:-admin/}
+      # Sin este filtro, envsubst arrasaría también con las variables
+      # propias de Nginx —$host, $uri, $scheme— dejándolas vacías y
+      # rompiendo la configuración entera. Solo se sustituye ADMIN_PATH.
+      NGINX_ENVSUBST_FILTER: "^ADMIN_PATH$$"
+    container_name: mysite-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certbot_conf:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+      # Media en solo lectura: Nginx sirve las imágenes directamente desde el
+      # mismo volumen donde Django las escribe, sin gastar hilos de Gunicorn.
+      - api_data:/data:ro
+    depends_on:
+      api:
+        condition: service_started
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  # Certbot bajo perfil: no corre en el arranque normal, solo cuando se le
+  # invoca. Un contenedor permanente para una tarea que se ejecuta cada 60
+  # días sería malgastar memoria que no sobra.
+  #
+  #   Primera emisión: ./infra/scripts/init-ssl.sh
+  #   Renovación:      docker compose -f compose.prod.yml run --rm certbot renew
+  certbot:
+    image: certbot/certbot:latest
+    container_name: mysite-certbot
+    profiles: [certbot]
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: certbot
+
+volumes:
+  api_data:
+    name: mysite_api_data
+  certbot_conf:
+    name: mysite_certbot_conf
+  certbot_www:
+    name: mysite_certbot_www
+
+networks:
+  internal:
+    driver: bridge

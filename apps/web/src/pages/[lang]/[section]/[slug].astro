@@ -1,0 +1,45 @@
+---
+/**
+ * Despachador de páginas de detalle: proyectos y publicaciones del blog.
+ *
+ * `getStaticPaths` consulta a Django en tiempo de build y genera una ruta por
+ * cada contenido publicado y cada idioma. Si Django no responde, el cliente
+ * de API lanza y el build falla — que es exactamente lo que debe pasar.
+ */
+import ProjectDetail from '../../../components/pages/ProjectDetail.astro';
+import PostDetail from '../../../components/pages/PostDetail.astro';
+import { getProjects, getPosts } from '../../../lib/api';
+import { LANGUAGES, ROUTES } from '../../../lib/i18n';
+import type { Language } from '../../../lib/types';
+
+export async function getStaticPaths() {
+  const paths = [];
+
+  for (const lang of LANGUAGES) {
+    const [projects, posts] = await Promise.all([getProjects(lang), getPosts(lang)]);
+
+    for (const project of projects) {
+      paths.push({
+        params: { lang, section: ROUTES[lang].projects, slug: project.slug },
+        props: { kind: 'project' as const },
+      });
+    }
+
+    for (const post of posts) {
+      paths.push({
+        params: { lang, section: ROUTES[lang].blog, slug: post.slug },
+        props: { kind: 'post' as const },
+      });
+    }
+  }
+
+  return paths;
+}
+
+const lang = Astro.params.lang as Language;
+const slug = Astro.params.slug as string;
+const { kind } = Astro.props as { kind: 'project' | 'post' };
+---
+
+{kind === 'project' && <ProjectDetail lang={lang} slug={slug} />}
+{kind === 'post' && <PostDetail lang={lang} slug={slug} />}

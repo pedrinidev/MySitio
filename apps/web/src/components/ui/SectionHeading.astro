@@ -1,0 +1,59 @@
+---
+interface Props {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  align?: 'start' | 'center';
+  /**
+   * Nivel del encabezado. Por defecto h2, porque el uso más habitual es
+   * titular una sección dentro de una página que ya tiene su h1.
+   *
+   * Las páginas de sección (Proyectos, Blog, Juegos…) deben pasar `level={1}`:
+   * ese titular ES el encabezado principal del documento. Una página sin h1
+   * deja a quien usa lector de pantalla sin punto de entrada y a Google sin
+   * señal de cuál es el tema de la página.
+   */
+  level?: 1 | 2;
+}
+
+const { eyebrow, title, subtitle, align = 'start', level = 2 } = Astro.props;
+const Heading = level === 1 ? 'h1' : 'h2';
+---
+
+<div class:list={['heading', align]} data-reveal>
+  {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+  <Heading class="title">{title}</Heading>
+  {subtitle && <p class="subtitle">{subtitle}</p>}
+</div>
+
+<style>
+  .heading {
+    max-width: 42rem;
+    margin-bottom: 3rem;
+  }
+  .heading.center {
+    margin-inline: auto;
+    text-align: center;
+  }
+  .eyebrow {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: 0.75rem;
+  }
+  .title,
+  h1.title {
+    font-size: var(--text-display);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+  }
+  .subtitle {
+    margin-top: 1rem;
+    font-size: var(--text-lead);
+    line-height: 1.55;
+    color: var(--color-text-muted);
+  }
+</style>

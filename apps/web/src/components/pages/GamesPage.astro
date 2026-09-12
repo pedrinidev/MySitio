@@ -1,0 +1,131 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pageTitle } from '../../lib/site';
+import SectionHeading from '../ui/SectionHeading.astro';
+import QuizGame from '../islands/QuizGame';
+import SnakeGame from '../islands/SnakeGame';
+import Leaderboard from '../islands/Leaderboard';
+import { getGames, getQuizQuestions } from '../../lib/api';
+import { useTranslations, ROUTES, localePath } from '../../lib/i18n';
+import type { Language, QuizQuestion } from '../../lib/types';
+
+interface Props {
+  lang: Language;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const other: Language = lang === 'es' ? 'en' : 'es';
+
+const games = await getGames(lang);
+
+// Las preguntas se prerenderizan; las respuestas correctas NO viajan al
+// navegador. La corrección ocurre en el servidor al enviar la partida.
+const questionsByGame = new Map<string, QuizQuestion[]>();
+for (const game of games.filter((g) => g.kind === 'quiz')) {
+  questionsByGame.set(game.slug, await getQuizQuestions(game.slug, lang));
+}
+---
+
+<BaseLayout
+  lang={lang}
+  title={pageTitle(t.games.title)}
+  description={t.games.subtitle}
+  alternatePath={localePath(other, ROUTES[other].games)}
+>
+  <div class="section container-content">
+    <SectionHeading
+      level={1}
+      eyebrow={t.nav.games}
+      title={t.games.title}
+      subtitle={t.games.subtitle}
+    />
+
+    <div class="games-stack">
+      {
+        games.map((game) => (
+          <article class="game-card" data-reveal>
+            <header class="game-header">
+              <h2>{game.name}</h2>
+              <p>{game.description}</p>
+            </header>
+
+            <div class="game-body">
+              {/* client:visible — el motor de Snake son varios KB de JS. Quien
+                  solo pasa por la página no debería descargarlos. */}
+              {game.kind === 'quiz' ? (
+                <QuizGame
+                  client:visible
+                  slug={game.slug}
+                  questions={questionsByGame.get(game.slug) ?? []}
+                  lang={lang}
+                  dict={t}
+                />
+              ) : (
+                <SnakeGame client:visible slug={game.slug} dict={t} />
+              )}
+
+              <Leaderboard client:visible slug={game.slug} dict={t} />
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .games-stack {
+    display: grid;
+    gap: 3rem;
+  }
+  .game-card {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface-alt);
+    overflow: hidden;
+  }
+  .game-header {
+    padding: 1.75rem 1.75rem 0;
+  }
+  .game-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .game-header p {
+    margin-top: 0.5rem;
+    color: var(--color-text-muted);
+  }
+  .game-body {
+    display: grid;
+    gap: 1.5rem;
+    padding: 1.75rem;
+  }
+
+  /* En un teléfono el tablero quedaba encajonado dentro de tres cajas
+     anidadas —contenedor, tarjeta y panel— que se comían 144 px de los 390
+     disponibles. Aquí el panel interior renuncia a su marco: sigue estando
+     la tarjeta exterior, y el juego gana casi cien píxeles de ancho. */
+  @media (max-width: 640px) {
+    .game-header {
+      padding: 1.25rem 1.25rem 0;
+    }
+    .game-body {
+      padding: 1rem;
+      gap: 1rem;
+    }
+    .game-body :global(.game-panel) {
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .game-body {
+      grid-template-columns: 1fr 18rem;
+      align-items: start;
+    }
+  }
+</style>

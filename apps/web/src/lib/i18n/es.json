@@ -1,0 +1,140 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "projects": "Proyectos",
+    "blog": "Blog",
+    "games": "Juegos",
+    "about": "Sobre mí",
+    "contact": "Contacto",
+    "skipToContent": "Saltar al contenido",
+    "menu": "Menú",
+    "closeMenu": "Cerrar menú"
+  },
+  "hero": {
+    "scrollHint": "Desplazate para ver más",
+    "viewProjects": "Ver proyectos",
+    "downloadCv": "Descargar CV"
+  },
+  "projects": {
+    "title": "Proyectos",
+    "subtitle": "Cosas que construí de principio a fin, no ejercicios de curso.",
+    "filterAll": "Todos",
+    "filterBy": "Filtrar por tecnología",
+    "viewCase": "Ver el caso completo",
+    "empty": "No hay proyectos con esa tecnología.",
+    "role": "Mi rol",
+    "links": {
+      "repo": "Código",
+      "live": "Ver en vivo",
+      "store": "Google Play",
+      "video": "Ver demostración"
+    },
+    "backToList": "Volver a proyectos",
+    "scrollPrev": "Proyectos anteriores",
+    "scrollNext": "Proyectos siguientes"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Notas técnicas sobre lo que voy resolviendo.",
+    "readingTime": "min de lectura",
+    "search": "Buscar en el blog",
+    "searchPlaceholder": "Docker, SQLite, despliegue…",
+    "searching": "Buscando…",
+    "noResults": "Sin resultados para",
+    "resultsFor": "resultados para",
+    "allCategories": "Todas las categorías",
+    "filterAll": "Todo",
+    "filterByCategory": "Filtrar por categoría",
+    "filterByTag": "Filtrar por etiqueta",
+    "tagsLabel": "Etiquetas",
+    "emptyFiltered": "No hay publicaciones con ese filtro.",
+    "backToList": "Volver al blog",
+    "publishedOn": "Publicado el",
+    "empty": "Todavía no hay publicaciones."
+  },
+  "games": {
+    "title": "Juegos",
+    "subtitle": "Porque un portafolio también puede ser divertido.",
+    "play": "Jugar",
+    "playAgain": "Jugar otra vez",
+    "start": "Empezar",
+    "score": "Puntuación",
+    "leaderboard": "Mejores puntuaciones",
+    "yourName": "Tu apodo",
+    "submit": "Guardar puntuación",
+    "saving": "Guardando…",
+    "saved": "¡Guardado!",
+    "rank": "Puesto",
+    "noScores": "Todavía nadie jugó. Sé el primero.",
+    "quiz": {
+      "question": "Pregunta",
+      "of": "de",
+      "correct": "Correcto",
+      "incorrect": "Incorrecto",
+      "next": "Siguiente",
+      "finish": "Ver resultado",
+      "youScored": "Tu puntuación",
+      "correctAnswers": "respuestas correctas de"
+    },
+    "snake": {
+      "instructions": "Flechas o WASD para moverte. En móvil, deslizá.",
+      "gameOver": "Fin de la partida",
+      "pause": "Pausa"
+    }
+  },
+  "metrics": {
+    "title": "El servidor, en vivo",
+    "subtitle": "Este sitio corre en un servidor mínimo. Estos son sus números reales, ahora mismo.",
+    "cpu": "CPU",
+    "memory": "Memoria",
+    "disk": "Disco",
+    "uptime": "Tiempo encendido",
+    "load": "Carga",
+    "last24h": "Últimas 24 horas",
+    "unavailable": "Las métricas no están disponibles en este momento.",
+    "loading": "Midiendo…",
+    "days": "d",
+    "hours": "h",
+    "minutes": "min"
+  },
+  "contact": {
+    "title": "Hablemos",
+    "subtitle": "¿Una pasantía, un proyecto o una consulta? Escribime.",
+    "name": "Nombre",
+    "email": "Correo",
+    "subject": "Asunto",
+    "message": "Mensaje",
+    "send": "Enviar mensaje",
+    "sending": "Enviando…",
+    "success": "Mensaje enviado. Te respondo lo antes posible.",
+    "error": "No se pudo enviar. Probá de nuevo en unos minutos.",
+    "required": "Este campo es obligatorio",
+    "invalidEmail": "Escribí un correo válido",
+    "tooShort": "Muy corto",
+    "availability": "Disponibilidad"
+  },
+  "about": {
+    "title": "Sobre mí",
+    "skills": "Stack",
+    "experience": "Experiencia",
+    "current": "Actualidad",
+    "downloadCv": "Descargar CV en PDF"
+  },
+  "footer": {
+    "builtWith": "Construido con Astro y Django. Desplegado con Docker y GitHub Actions.",
+    "sourceCode": "Código fuente",
+    "rights": "Todos los derechos reservados."
+  },
+  "common": {
+    "language": "Idioma",
+    "switchTo": "Ver en inglés",
+    "switchToShort": "EN",
+    "loading": "Cargando…",
+    "retry": "Reintentar",
+    "close": "Cerrar",
+    "error": "Algo salió mal",
+    "theme": "Cambiar de tema",
+    "themeLight": "Modo claro",
+    "themeDark": "Modo oscuro"
+  }
+}

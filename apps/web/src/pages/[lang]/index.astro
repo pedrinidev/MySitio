@@ -1,0 +1,287 @@
+---
+/**
+ * Página de inicio.
+ *
+ * Los datos se piden a Django DURANTE EL BUILD. El visitante recibe HTML
+ * plano: ni una sola petición a la API para ver esta página.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE_NAME } from '../../lib/site';
+import Hero from '../../components/sections/Hero.astro';
+import SectionHeading from '../../components/ui/SectionHeading.astro';
+import TechBadge from '../../components/ui/TechBadge.astro';
+import MetricsDashboard from '../../components/islands/MetricsDashboard';
+import { getProfile, getProjects, getPosts } from '../../lib/api';
+import { useTranslations, ROUTES, localePath, LANGUAGES, formatDate } from '../../lib/i18n';
+import type { Language } from '../../lib/types';
+
+export function getStaticPaths() {
+  return LANGUAGES.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Language;
+const t = useTranslations(lang);
+const r = ROUTES[lang];
+const other: Language = lang === 'es' ? 'en' : 'es';
+
+const [profile, projects, posts] = await Promise.all([
+  getProfile(lang),
+  getProjects(lang),
+  getPosts(lang),
+]);
+
+const featured = projects.filter((project) => project.featured).slice(0, 3);
+const latestPosts = posts.slice(0, 3);
+---
+
+<BaseLayout
+  lang={lang}
+  title={`${SITE_NAME} — ${profile.role}`}
+  description={profile.headline}
+  alternatePath={localePath(other)}
+>
+  <Hero lang={lang} profile={profile} />
+
+  <section class="section container-content">
+    <SectionHeading
+      eyebrow={t.nav.projects}
+      title={t.projects.title}
+      subtitle={t.projects.subtitle}
+    />
+
+    <ul class="featured-grid">
+      {
+        featured.map((project, index) => (
+          <li class="featured-card" data-reveal data-reveal-delay={index * 0.08}>
+            <a href={`${localePath(lang, r.projects)}/${project.slug}`}>
+              {project.cover_url ? (
+                <img src={project.cover_url} alt="" width={800} height={500} loading="lazy" />
+              ) : (
+                <div class="cover-placeholder" aria-hidden="true">
+                  <span>{project.title.slice(0, 2).toUpperCase()}</span>
+                </div>
+              )}
+              <div class="featured-body">
+                <p class="featured-year">{project.year}</p>
+                <h3>{project.title}</h3>
+                <p class="featured-tagline">{project.tagline}</p>
+                <ul class="badge-row">
+                  {project.technologies.slice(0, 3).map((tech) => (
+                    <li>
+                      <TechBadge tech={tech} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <a href={localePath(lang, r.projects)} class="section-link">{t.projects.title} →</a>
+  </section>
+
+  <section class="section metrics-section">
+    <div class="container-content">
+      <SectionHeading eyebrow="infra" title={t.metrics.title} subtitle={t.metrics.subtitle} />
+      <div data-reveal>
+        {
+          /* client:visible — el JavaScript del dashboard no se descarga hasta que
+            el visitante se acerca. Quien solo lee el hero no lo paga. */
+        }
+        <MetricsDashboard client:visible dict={t} />
+      </div>
+    </div>
+  </section>
+
+  {
+    latestPosts.length > 0 && (
+      <section class="section container-content">
+        <SectionHeading eyebrow={t.nav.blog} title={t.blog.title} subtitle={t.blog.subtitle} />
+        <ul class="post-list">
+          {latestPosts.map((post, index) => (
+            <li data-reveal data-reveal-delay={index * 0.06}>
+              <a href={`${localePath(lang, r.blog)}/${post.slug}`} class="post-row">
+                <span class="post-category">{post.category.name}</span>
+                <span class="post-title">{post.title}</span>
+                <span class="post-meta">
+                  {formatDate(post.published_at, lang)} · {post.reading_minutes}{' '}
+                  {t.blog.readingTime}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <a href={localePath(lang, r.blog)} class="section-link">
+          {t.blog.title} →
+        </a>
+      </section>
+    )
+  }
+
+  <section class="section container-content">
+    <div class="cta-block" data-reveal>
+      <h2>{t.contact.title}</h2>
+      <p>{t.contact.subtitle}</p>
+      <a href={localePath(lang, r.contact)} class="btn-primary">{t.contact.send}</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .featured-grid {
+    display: grid;
+    gap: 1.5rem;
+    list-style: none;
+  }
+
+  .featured-card a {
+    display: block;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--color-surface);
+    transition:
+      transform 0.4s var(--ease-out-soft),
+      box-shadow 0.4s var(--ease-out-soft);
+  }
+  .featured-card a:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .featured-card img,
+  .cover-placeholder {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    display: block;
+  }
+
+  .cover-placeholder {
+    display: grid;
+    place-items: center;
+    background: var(--color-surface-sunken);
+    color: var(--color-text-faint);
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+
+  .featured-body {
+    padding: 1.5rem;
+  }
+  .featured-year {
+    font-size: 0.8125rem;
+    color: var(--color-text-faint);
+  }
+  .featured-body h3 {
+    margin-top: 0.35rem;
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .featured-tagline {
+    margin-top: 0.6rem;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1.1rem;
+    list-style: none;
+  }
+
+  .section-link {
+    display: inline-block;
+    margin-top: 2.5rem;
+    font-size: 0.9375rem;
+    color: var(--color-accent);
+  }
+
+  .metrics-section {
+    background: var(--color-surface-alt);
+    border-block: 1px solid var(--color-line);
+  }
+
+  .post-list {
+    list-style: none;
+    border-top: 1px solid var(--color-line);
+  }
+  .post-row {
+    display: grid;
+    gap: 0.35rem;
+    padding-block: 1.5rem;
+    border-bottom: 1px solid var(--color-line);
+    transition: padding-inline 0.3s var(--ease-out-soft);
+  }
+  .post-row:hover {
+    padding-inline: 0.75rem;
+  }
+  .post-category {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .post-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .post-meta {
+    font-size: 0.8125rem;
+    color: var(--color-text-faint);
+  }
+
+  .cta-block {
+    text-align: center;
+    padding: clamp(3rem, 8vw, 5rem) 1.5rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface-alt);
+  }
+  .cta-block h2 {
+    font-size: var(--text-display);
+    letter-spacing: -0.03em;
+    font-weight: 600;
+  }
+  .cta-block p {
+    margin-block: 1rem 2rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-lead);
+  }
+  .cta-block .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding-inline: 1.75rem;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  @media (min-width: 720px) {
+    .featured-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .post-row {
+      grid-template-columns: 9rem 1fr auto;
+      align-items: baseline;
+      gap: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1040px) {
+    .featured-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

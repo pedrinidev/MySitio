@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+.Python
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Django
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+/data/
+media/
+staticfiles/
+
+# Node / Astro
+node_modules/
+dist/
+.astro/
+.output/
+
+# Entorno — NUNCA versionar secretos
+.env
+.env.*
+!.env.example
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editores y herramientas locales
+.vscode/
+.idea/
+*.swp
+.claude/
+CLAUDE.md
+
+# Certificados y respaldos locales
+certbot/
+backups/
+
+# El CV en PDF lleva el número de teléfono, y este repositorio es público.
+# El patrón es amplio a propósito: la versión anterior estaba ignorada por
+# su nombre exacto, y al regenerar el archivo con otro nombre dejó de
+# estarlo sin que nada avisara. Un `git add -A` lo habría publicado.
+# El CV se despliega copiándolo al volumen de medios: docs/deployment.md §4.
+CV_PMT*.pdf
+CV-PedriniDev*.pdf

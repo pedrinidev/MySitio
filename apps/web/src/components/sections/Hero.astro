@@ -1,0 +1,203 @@
+---
+import { useTranslations, ROUTES, localePath } from '../../lib/i18n';
+import type { Language, Profile } from '../../lib/types';
+
+interface Props {
+  lang: Language;
+  profile: Profile;
+}
+
+const { lang, profile } = Astro.props;
+const t = useTranslations(lang);
+const r = ROUTES[lang];
+
+// Solo las habilidades marcadas como destacadas: el hero es para tres o
+// cuatro señales fuertes, no para el inventario completo del CV.
+const primarySkills = profile.skill_groups
+  .flatMap((group) => group.skills)
+  .filter((skill) => skill.is_primary)
+  .slice(0, 6);
+---
+
+<section class="hero" data-hero>
+  <div class="hero-glow" data-parallax="0.12" aria-hidden="true"></div>
+
+  <div class="container-content hero-inner">
+    <p class="hero-role" data-hero-item>{profile.role}</p>
+
+    <h1 class="hero-title" data-hero-item>{profile.headline}</h1>
+
+    <p class="hero-location" data-hero-item>
+      <span class="dot-live" aria-hidden="true"></span>
+      {profile.location} · {profile.availability}
+    </p>
+
+    <div class="hero-actions" data-hero-item>
+      <a href={localePath(lang, r.projects)} class="btn-primary">{t.hero.viewProjects}</a>
+      {
+        profile.cv_url && (
+          <a href={profile.cv_url} class="btn-ghost" download>
+            {t.hero.downloadCv}
+          </a>
+        )
+      }
+    </div>
+
+    {
+      primarySkills.length > 0 && (
+        <ul class="hero-skills" data-hero-item>
+          {primarySkills.map((skill) => (
+            <li>{skill.name}</li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+
+  <p class="scroll-hint" aria-hidden="true">{t.hero.scrollHint}</p>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    display: grid;
+    align-content: center;
+    min-height: min(88vh, 780px);
+    padding-block: clamp(4rem, 12vh, 8rem);
+    overflow: hidden;
+  }
+
+  /* Resplandor de fondo: un único degradado radial muy suave. Da profundidad
+     sin costar una imagen ni un solo byte de red. */
+  .hero-glow {
+    position: absolute;
+    inset: -20% -10% auto;
+    height: 70%;
+    background: radial-gradient(
+      ellipse at 50% 0%,
+      color-mix(in srgb, var(--color-accent) 16%, transparent),
+      transparent 65%
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .hero-role {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--color-accent);
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-title {
+    font-size: var(--text-hero);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+    font-weight: 600;
+    max-width: 18ch;
+    text-wrap: balance;
+  }
+
+  .hero-location {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.75rem;
+    font-size: 1rem;
+    color: var(--color-text-muted);
+  }
+
+  /* Punto verde que late: señal de «disponible», leída al instante. */
+  .dot-live {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--color-success);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 60%, transparent);
+    animation: pulse 2.4s ease-out infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 55%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 0.6rem transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+  }
+
+  .btn-primary,
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* 2.75rem = 44 px: el mínimo táctil accesible. Sin excepciones. */
+    min-height: 2.75rem;
+    padding-inline: 1.5rem;
+    border-radius: 999px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition:
+      transform 0.25s var(--ease-out-soft),
+      background 0.25s var(--ease-out-soft);
+  }
+
+  .btn-primary {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: var(--color-accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    border: 1px solid var(--color-line-strong);
+    color: var(--color-text);
+  }
+  .btn-ghost:hover {
+    border-color: var(--color-text);
+    transform: translateY(-1px);
+  }
+
+  .hero-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-line);
+    list-style: none;
+    font-size: 0.875rem;
+    color: var(--color-text-faint);
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+  }
+
+  @media (max-width: 640px) {
+    .scroll-hint {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,910 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Estilos de las islas React.
+
+   Los componentes de Astro llevan sus estilos con ámbito propio dentro del
+   archivo. Los de React no pueden: viven aquí, en un archivo global, con
+   nombres de clase suficientemente específicos para no colisionar.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Elementos compartidos ─────────────────────────────────────── */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding-inline: 0.9rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition:
+    border-color 0.2s var(--ease-out-soft),
+    color 0.2s var(--ease-out-soft),
+    background 0.2s var(--ease-out-soft);
+}
+/* En pantallas táctiles los filtros crecen hasta los 44 px que recomienda
+   Apple como mínimo para el dedo. `pointer: coarse` acota el cambio a los
+   dispositivos que lo necesitan: con ratón, 36 px se aciertan de sobra y
+   agrandarlos solo engordaría la interfaz. */
+@media (pointer: coarse) {
+  .chip {
+    min-height: 2.75rem;
+    padding-inline: 1.05rem;
+  }
+}
+
+.chip:hover {
+  border-color: var(--color-line-strong);
+  color: var(--color-text);
+}
+/* El chip activo se pinta con el color de acento y NO con --color-ink.
+   En modo oscuro --color-ink y --color-surface valen ambos #06070a, así
+   que la combinación «fondo ink / texto surface» dejaba el chip negro
+   sobre negro: invisible, y con él la única señal de qué filtro está
+   puesto. El acento funciona en los dos temas. */
+.chip.is-active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+.chip.is-active:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: #fff;
+}
+.chip.is-active .count {
+  opacity: 0.8;
+}
+.chip .dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--chip-color, var(--color-accent));
+  flex-shrink: 0;
+}
+.chip .count {
+  font-size: 0.6875rem;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  padding: 3rem 0;
+  color: var(--color-text-faint);
+  text-align: center;
+}
+
+.spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-line-strong);
+  border-top-color: var(--color-accent);
+  border-radius: 999px;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem; /* 44 px: mínimo táctil */
+  padding-inline: 1.5rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s var(--ease-out-soft);
+}
+.submit:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+.submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Filtro de proyectos ───────────────────────────────────────── */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 2.5rem;
+}
+
+/* ── Carril de proyectos ───────────────────────────────────────────
+   Desplazamiento nativo con anclaje. Nada de `transform` movido por
+   JavaScript: así el dedo, la rueda, el trackpad y el tabulador funcionan
+   solos, con su inercia y su anclaje, y el carril sigue sirviendo aunque
+   el script nunca llegue a ejecutarse. */
+.rail-wrap {
+  position: relative;
+}
+
+.rail {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0.25rem;
+  /* Sitio para que la sombra al pasar el ratón no se recorte. */
+  padding-block: 0.5rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.rail > li {
+  flex: 0 0 min(21rem, 80%);
+  scroll-snap-align: start;
+}
+
+/* Mientras el carril avanza solo hay que quitar el anclaje: `mandatory`
+   devolvería el carril al borde de la tarjeta en cada fotograma y el
+   movimiento se vería como un temblor. Al pararse vuelve el anclaje, que es
+   cuando de verdad sirve: al soltar un deslizamiento o pulsar una flecha. */
+.rail.is-drifting {
+  scroll-snap-type: none;
+}
+
+.rail-arrow {
+  position: absolute;
+  top: 38%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition:
+    opacity 0.2s var(--ease-out-soft),
+    border-color 0.2s var(--ease-out-soft);
+}
+.rail-arrow svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.rail-arrow:hover:not(:disabled) {
+  border-color: var(--color-line-strong);
+}
+/* Deshabilitada se desvanece y deja de recibir el puntero, en vez de
+   desaparecer: si saltara, la tarjeta de al lado se movería sola. */
+.rail-arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.rail-prev {
+  left: -0.75rem;
+}
+.rail-next {
+  right: -0.75rem;
+}
+
+/* Con el dedo las flechas sobran: se desliza y ya. Ocupan sitio y tapan
+   parte de la tarjeta en una pantalla estrecha. */
+@media (pointer: coarse) {
+  .rail-arrow {
+    display: none;
+  }
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+  list-style: none;
+}
+
+.card-link {
+  display: block;
+  height: 100%;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface);
+  transition:
+    transform 0.4s var(--ease-out-soft),
+    box-shadow 0.4s var(--ease-out-soft);
+}
+.card-link:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
+}
+
+.cover {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+}
+.cover-placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-faint);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: var(--color-text-faint);
+}
+.card-meta .star {
+  color: var(--color-accent);
+}
+.card-title {
+  margin-top: 0.35rem;
+  font-size: 1.3125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.card-tagline {
+  margin-top: 0.6rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+.tech-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 1.1rem;
+  list-style: none;
+}
+.tech-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.tech-list .dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--chip-color, var(--color-accent));
+}
+
+@media (min-width: 700px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1040px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  /* En pantalla ancha caben tres tarjetas justas y la cuarta asoma por el
+     borde: el recorte es lo que indica que el carril sigue. */
+  .rail > li {
+    flex-basis: calc((100% - 3rem) / 3);
+  }
+}
+
+/* ── Búsqueda del blog ─────────────────────────────────────────── */
+
+.search {
+  margin-bottom: 2.5rem;
+}
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+  transition: border-color 0.2s var(--ease-out-soft);
+}
+.search-field:focus-within {
+  border-color: var(--color-accent);
+}
+.search-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+}
+.search-field input {
+  flex: 1;
+  min-height: 2.75rem;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  outline: none;
+}
+.search-field input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+.search-count {
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-faint);
+}
+.search-error {
+  margin-top: 1rem;
+  color: var(--color-danger);
+  font-size: 0.875rem;
+}
+.search-results {
+  margin-top: 1rem;
+  list-style: none;
+  border-top: 1px solid var(--color-line);
+}
+.search-results a {
+  display: grid;
+  gap: 0.3rem;
+  padding-block: 1.1rem;
+  border-bottom: 1px solid var(--color-line);
+}
+.result-category {
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.result-title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.result-excerpt {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Listado del blog ──────────────────────────────────────────── */
+
+/* Estas reglas viven aquí y no en BlogPage.astro porque el listado lo
+   pinta una isla de React: los estilos con ámbito de Astro marcan solo
+   los elementos del propio .astro y nunca alcanzarían al DOM de React. */
+
+.filters-tags {
+  margin-top: -1.75rem;
+}
+.chip-tag {
+  font-variant: normal;
+}
+
+.post-cards {
+  display: grid;
+  gap: 1.25rem;
+  list-style: none;
+}
+.post-cards a {
+  display: block;
+  padding: 1.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  transition:
+    transform 0.35s var(--ease-out-soft),
+    box-shadow 0.35s var(--ease-out-soft);
+}
+.post-cards a:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+}
+.post-category {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.post-cards h2 {
+  margin-top: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.post-excerpt {
+  margin-top: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  list-style: none;
+}
+.post-tags li {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+}
+.post-meta {
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-faint);
+}
+
+@media (min-width: 860px) {
+  .post-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Dashboard de métricas ─────────────────────────────────────── */
+
+.metrics-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.metric-tile {
+  padding: 1.35rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.metric-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+.metric-value {
+  margin-top: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.metric-sub {
+  margin-top: 0.3rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  margin-top: 0.9rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-success);
+  transition: width 0.6s var(--ease-out-soft);
+}
+.bar.warning span {
+  background: var(--color-warning);
+}
+.bar.critical span {
+  background: var(--color-danger);
+}
+
+.metrics-fallback {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  border: 1px dashed var(--color-line-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.sparkline {
+  margin-top: 1rem;
+  padding: 1.35rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.sparkline figcaption {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  margin-bottom: 0.75rem;
+}
+.sparkline svg {
+  width: 100%;
+  height: 4.5rem;
+  display: block;
+}
+
+.metrics-stamp {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.pulse {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-success);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (min-width: 860px) {
+  .metrics-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ── Formularios ───────────────────────────────────────────────── */
+
+.contact-form {
+  display: grid;
+  gap: 1.25rem;
+}
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+.field label,
+.field > span {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+.field input,
+.field textarea {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9375rem;
+  transition: border-color 0.2s var(--ease-out-soft);
+}
+.field textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+.field input[aria-invalid='true'],
+.field textarea[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+.field-error {
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+}
+
+/* Honeypot: fuera de la vista y fuera del árbol de accesibilidad.
+   `display:none` sería peor — hay bots que ignoran los campos ocultos así. */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.form-error {
+  color: var(--color-danger);
+  font-size: 0.875rem;
+}
+.form-success {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.75rem;
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-success) 8%, transparent);
+  color: var(--color-text);
+}
+.success-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-success);
+  flex-shrink: 0;
+}
+
+/* ── Juegos ────────────────────────────────────────────────────── */
+
+.game-panel {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.game-intro {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.quiz-progress {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-faint);
+}
+.progress-track {
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+.progress-track span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.4s var(--ease-out-soft);
+}
+
+.quiz-question {
+  font-size: 1.1875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.quiz-options {
+  display: grid;
+  gap: 0.6rem;
+  list-style: none;
+}
+.quiz-option {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9375rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s var(--ease-out-soft),
+    background 0.2s var(--ease-out-soft);
+}
+.quiz-option:hover {
+  border-color: var(--color-line-strong);
+}
+.quiz-option.is-selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.quiz-result {
+  text-align: center;
+  padding-block: 1.5rem;
+}
+.result-score {
+  font-size: 3.5rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.result-detail {
+  margin-top: 0.6rem;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.quiz-review {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  counter-reset: review;
+}
+.quiz-review li {
+  padding: 1.1rem;
+  border-left: 3px solid var(--color-line);
+  background: var(--color-surface-alt);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.quiz-review li.ok {
+  border-left-color: var(--color-success);
+}
+.quiz-review li.ko {
+  border-left-color: var(--color-danger);
+}
+.review-question {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+.review-answer {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+.review-why {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+/* Snake */
+.snake-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.snake-rank {
+  color: var(--color-accent);
+}
+
+/* La paleta del juego vive en variables CSS y no en constantes del
+   componente, para que siga las mismas reglas de tema que el resto del
+   sitio. El canvas las lee con getComputedStyle al empezar la partida. */
+.canvas-wrap {
+  --snake-head: var(--color-accent);
+  --snake-tail: #1d4ed8;
+  --snake-food: #ff9f0a;
+  --snake-grid: rgb(255 255 255 / 0.04);
+  --snake-eye: #ffffff;
+
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: light) {
+  .canvas-wrap {
+    /* Sobre un tablero claro la cuadrícula tiene que oscurecer, no aclarar,
+       y la cola necesita más cuerpo para no perderse contra el fondo. */
+    --snake-tail: #1e40af;
+    --snake-grid: rgb(6 7 10 / 0.05);
+  }
+}
+.canvas-wrap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Sin esto, deslizar para mover la serpiente arrastra la página entera. */
+  touch-action: none;
+}
+
+.canvas-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.85rem;
+  padding: 1.5rem;
+  text-align: center;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  backdrop-filter: blur(6px);
+}
+.overlay-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.overlay-score {
+  font-size: 3rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.overlay-hint {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  max-width: 20rem;
+}
+.overlay-input {
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: center;
+}
+
+/* Ranking */
+.leaderboard {
+  padding: 1.35rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.leaderboard h3 {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  margin-bottom: 1rem;
+}
+.leaderboard ol {
+  list-style: none;
+  display: grid;
+  gap: 0.1rem;
+}
+.leaderboard li {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.5rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--color-line);
+}
+.leaderboard li:last-child {
+  border-bottom: none;
+}
+.leaderboard .rank {
+  color: var(--color-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.leaderboard .who {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.leaderboard .points {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.leaderboard-empty {
+  font-size: 0.875rem;
+  color: var(--color-text-faint);
+}

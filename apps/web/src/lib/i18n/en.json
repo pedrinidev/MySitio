@@ -1,0 +1,140 @@
+{
+  "nav": {
+    "home": "Home",
+    "projects": "Projects",
+    "blog": "Blog",
+    "games": "Games",
+    "about": "About",
+    "contact": "Contact",
+    "skipToContent": "Skip to content",
+    "menu": "Menu",
+    "closeMenu": "Close menu"
+  },
+  "hero": {
+    "scrollHint": "Scroll to explore",
+    "viewProjects": "View projects",
+    "downloadCv": "Download CV"
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Things I built end to end — not course exercises.",
+    "filterAll": "All",
+    "filterBy": "Filter by technology",
+    "viewCase": "Read the full case",
+    "empty": "No projects use that technology.",
+    "role": "My role",
+    "links": {
+      "repo": "Source",
+      "live": "Live site",
+      "store": "Google Play",
+      "video": "Watch demo"
+    },
+    "backToList": "Back to projects",
+    "scrollPrev": "Previous projects",
+    "scrollNext": "Next projects"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Technical notes on what I'm working through.",
+    "readingTime": "min read",
+    "search": "Search the blog",
+    "searchPlaceholder": "Docker, SQLite, deployment…",
+    "searching": "Searching…",
+    "noResults": "No results for",
+    "resultsFor": "results for",
+    "allCategories": "All categories",
+    "filterAll": "All",
+    "filterByCategory": "Filter by category",
+    "filterByTag": "Filter by tag",
+    "tagsLabel": "Tags",
+    "emptyFiltered": "No posts match that filter.",
+    "backToList": "Back to the blog",
+    "publishedOn": "Published on",
+    "empty": "No posts yet."
+  },
+  "games": {
+    "title": "Games",
+    "subtitle": "Because a portfolio can be fun too.",
+    "play": "Play",
+    "playAgain": "Play again",
+    "start": "Start",
+    "score": "Score",
+    "leaderboard": "Leaderboard",
+    "yourName": "Your nickname",
+    "submit": "Save score",
+    "saving": "Saving…",
+    "saved": "Saved!",
+    "rank": "Rank",
+    "noScores": "Nobody has played yet. Be the first.",
+    "quiz": {
+      "question": "Question",
+      "of": "of",
+      "correct": "Correct",
+      "incorrect": "Incorrect",
+      "next": "Next",
+      "finish": "See result",
+      "youScored": "Your score",
+      "correctAnswers": "correct answers out of"
+    },
+    "snake": {
+      "instructions": "Arrows or WASD to move. On mobile, swipe.",
+      "gameOver": "Game over",
+      "pause": "Paused"
+    }
+  },
+  "metrics": {
+    "title": "The server, live",
+    "subtitle": "This site runs on a minimal server. These are its real numbers, right now.",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "disk": "Disk",
+    "uptime": "Uptime",
+    "load": "Load",
+    "last24h": "Last 24 hours",
+    "unavailable": "Metrics are unavailable right now.",
+    "loading": "Measuring…",
+    "days": "d",
+    "hours": "h",
+    "minutes": "min"
+  },
+  "contact": {
+    "title": "Let's talk",
+    "subtitle": "An internship, a project or a question? Write to me.",
+    "name": "Name",
+    "email": "Email",
+    "subject": "Subject",
+    "message": "Message",
+    "send": "Send message",
+    "sending": "Sending…",
+    "success": "Message sent. I'll get back to you as soon as I can.",
+    "error": "Could not send. Please try again in a few minutes.",
+    "required": "This field is required",
+    "invalidEmail": "Enter a valid email address",
+    "tooShort": "Too short",
+    "availability": "Availability"
+  },
+  "about": {
+    "title": "About me",
+    "skills": "Stack",
+    "experience": "Experience",
+    "current": "Present",
+    "downloadCv": "Download CV as PDF"
+  },
+  "footer": {
+    "builtWith": "Built with Astro and Django. Deployed with Docker and GitHub Actions.",
+    "sourceCode": "Source code",
+    "rights": "All rights reserved."
+  },
+  "common": {
+    "language": "Language",
+    "switchTo": "Ver en español",
+    "switchToShort": "ES",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "close": "Close",
+    "error": "Something went wrong",
+    "theme": "Switch theme",
+    "themeLight": "Light mode",
+    "themeDark": "Dark mode"
+  }
+}

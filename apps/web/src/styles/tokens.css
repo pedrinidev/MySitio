@@ -1,0 +1,404 @@
+@import 'tailwindcss';
+@import './islands.css';
+
+/* ═══════════════════════════════════════════════════════════════════
+   Sistema de diseño — pedrinidev.com
+
+   Lenguaje visual de referencia: tipografía grande, mucho aire, movimiento
+   que acompaña al contenido en vez de competir con él.
+
+   Todo color, espaciado y transición sale de un token. Un valor suelto en
+   un componente es el primer paso hacia una interfaz que no parece la misma
+   de una página a otra.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Tipografía ──────────────────────────────────────────────────
+     Pila del sistema: cero peticiones de red, cero desplazamiento de
+     diseño al cargar la fuente, y en cada plataforma se ve nativa.
+     Es también el mejor LCP posible. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Inter, Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, 'Cascadia Code', monospace;
+
+  /* Escala tipográfica en potencias sucesivas. Los títulos grandes usan
+     tracking negativo: a 60px, el espaciado por defecto se ve suelto. */
+  --text-hero: clamp(2.75rem, 8vw, 6rem);
+  --text-hero--line-height: 0.95;
+  --text-hero--letter-spacing: -0.04em;
+
+  --text-display: clamp(2rem, 5vw, 3.5rem);
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.03em;
+
+  --text-title: clamp(1.5rem, 3vw, 2.25rem);
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.02em;
+
+  --text-lead: clamp(1.125rem, 2vw, 1.375rem);
+  --text-lead--line-height: 1.55;
+
+  /* ── Color ───────────────────────────────────────────────────────
+     Neutros fríos y un único acento. Un portafolio con seis colores de
+     marca parece una plantilla; con uno, parece una decisión. */
+  --color-ink: #06070a;
+  --color-ink-soft: #16181d;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f6f6f8;
+  --color-surface-sunken: #eeeef2;
+
+  --color-text: #16181d;
+  --color-text-muted: #61646e;
+  --color-text-faint: #8f939d;
+
+  --color-line: #e3e4e9;
+  --color-line-strong: #cdcfd6;
+
+  --color-accent: #0071e3;
+  --color-accent-hover: #0058b4;
+  --color-accent-soft: #e8f1fd;
+
+  --color-success: #16a34a;
+  --color-warning: #ca8a04;
+  --color-danger: #dc2626;
+
+  /* ── Ritmo y forma ───────────────────────────────────────────── */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+
+  --spacing-section: clamp(4rem, 10vw, 9rem);
+  --width-content: 72rem;
+  --width-prose: 44rem;
+
+  /* Sombras muy suaves y muy extendidas: elevación sin bordes duros. */
+  --shadow-card: 0 1px 2px rgb(6 7 10 / 0.04), 0 8px 24px rgb(6 7 10 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(6 7 10 / 0.05), 0 20px 48px rgb(6 7 10 / 0.12);
+
+  /* Curva de aceleración de referencia: arranque decidido, frenada larga.
+     Es lo que hace que una transición se sienta física y no mecánica. */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ── Modo oscuro ───────────────────────────────────────────────────
+   Hay TRES estados, no dos:
+
+     sin `data-theme`      → manda la preferencia del sistema
+     data-theme="dark"     → el visitante eligió oscuro
+     data-theme="light"    → el visitante eligió claro
+
+   El `:not([data-theme='light'])` de la media query es lo que permite que
+   una elección manual gane a la del sistema: sin él, quien tuviese el
+   sistema en oscuro no podría forzar el claro nunca.
+
+   Los valores están escritos dos veces a propósito. Se podría evitar con
+   `light-dark()`, pero esa función solo existe en navegadores de 2024 en
+   adelante y este sitio tiene que verse bien también en el teléfono de
+   quien no actualiza. Duplicar catorce líneas es más barato que excluir
+   gente. Si se toca una lista, hay que tocar la otra.
+
+   Estos bloques van en `:root` sin capa y NO en `@theme`: Tailwind saca
+   todo `@theme` de su contexto y lo aplana en un único `:root`, así que
+   dentro de una media query el bloque se izaba igual y el modo claro no
+   llegaba nunca al navegador. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-surface: #06070a;
+    --color-surface-alt: #101116;
+    --color-surface-sunken: #16181d;
+    --color-text: #f2f3f5;
+    --color-text-muted: #a1a5af;
+    --color-text-faint: #6c707a;
+    --color-line: #23252c;
+    --color-line-strong: #33363f;
+    --color-accent: #2997ff;
+    --color-accent-hover: #5cb0ff;
+    --color-accent-soft: #0d2136;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.3);
+    --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.5), 0 20px 48px rgb(0 0 0 / 0.45);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-surface: #06070a;
+  --color-surface-alt: #101116;
+  --color-surface-sunken: #16181d;
+  --color-text: #f2f3f5;
+  --color-text-muted: #a1a5af;
+  --color-text-faint: #6c707a;
+  --color-line: #23252c;
+  --color-line-strong: #33363f;
+  --color-accent: #2997ff;
+  --color-accent-hover: #5cb0ff;
+  --color-accent-soft: #0d2136;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.3);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.5), 0 20px 48px rgb(0 0 0 / 0.45);
+  color-scheme: dark;
+}
+
+/* Elección explícita de claro: basta con anunciar el esquema, porque los
+   valores claros ya son los de `:root`. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Base
+   ═══════════════════════════════════════════════════════════════════ */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  /* Le dice al navegador que el sitio entiende los dos temas. Sin esto,
+     lo que pinta el navegador y no nosotros —barras de desplazamiento,
+     menús de <select>, el relleno automático de formularios— se queda en
+     claro sobre un fondo oscuro. */
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* El foco visible NUNCA se elimina. Quien navega con teclado necesita saber
+   dónde está; quitarlo por estética es excluir gente del sitio. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Accesibilidad del movimiento
+
+   Regla no negociable: si el visitante pidió menos movimiento, se lo
+   damos. Para algunas personas el parallax no es un adorno, es un
+   desencadenante de mareo.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Los elementos que GSAP iba a revelar deben quedar visibles, no
+     invisibles para siempre. */
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Estado inicial de los elementos animados al entrar en pantalla.
+   Se aplica solo si hay JavaScript: sin él, el contenido se ve igualmente.
+   Un sitio que solo funciona con JS es un sitio que a veces no funciona. */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Utilidades compartidas
+   ═══════════════════════════════════════════════════════════════════ */
+
+.container-content {
+  width: 100%;
+  max-width: var(--width-content);
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 5vw, 2.5rem);
+}
+
+.container-prose {
+  width: 100%;
+  max-width: var(--width-prose);
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 5vw, 2.5rem);
+}
+
+.section {
+  padding-block: var(--spacing-section);
+}
+
+/* Sólo para lectores de pantalla — imprescindible para el enlace de salto. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  transition: top 0.2s var(--ease-out-soft);
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Prosa — el HTML que llega ya renderizado desde Django
+   ═══════════════════════════════════════════════════════════════════ */
+
+.prose {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+.prose > * + * {
+  margin-top: 1.4em;
+}
+.prose h2 {
+  font-size: var(--text-title);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  margin-top: 2.5em;
+}
+.prose h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-top: 2em;
+}
+.prose a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.prose a:hover {
+  color: var(--color-accent-hover);
+}
+/* `--color-text` y NO `--color-ink`: ink vale #06070a y no se redefine en
+   modo oscuro, así que la negrita salía casi negra sobre fondo casi negro —
+   invisible. Afectaba a TODO el texto en negrita del sitio: la biografía,
+   los artículos del blog y los casos de estudio de cada proyecto. Los
+   bloques de código sí siguen usando ink, pero ahí es un FONDO, no texto. */
+.prose strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.35em;
+}
+.prose ul {
+  list-style: disc;
+}
+.prose ol {
+  list-style: decimal;
+}
+.prose li + li {
+  margin-top: 0.5em;
+}
+.prose blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 1.25em;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--color-surface-sunken);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+.prose pre {
+  background: var(--color-ink);
+  color: #e6e6e6;
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  /* Los bloques de código desbordan HACIA DENTRO. El cuerpo de la página
+     nunca debe hacer scroll horizontal en un teléfono. */
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.prose pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+.prose img {
+  border-radius: var(--radius-md);
+  max-width: 100%;
+  height: auto;
+}
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  display: block;
+  overflow-x: auto;
+}
+.prose th,
+.prose td {
+  border: 1px solid var(--color-line);
+  padding: 0.6em 0.85em;
+  text-align: left;
+}
+.prose th {
+  background: var(--color-surface-alt);
+  font-weight: 600;
+}
+
+/* Resaltado de sintaxis (Pygments, generado en el servidor).
+   Paleta reducida a propósito: el código se lee mejor con pocos colores. */
+.prose .highlight {
+  background: var(--color-ink);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+.prose .highlight .k,
+.prose .highlight .kd,
+.prose .highlight .kn {
+  color: #ff7ab2;
+}
+.prose .highlight .s,
+.prose .highlight .s1,
+.prose .highlight .s2 {
+  color: #78c2a0;
+}
+.prose .highlight .c,
+.prose .highlight .c1,
+.prose .highlight .cm {
+  color: #6c707a;
+  font-style: italic;
+}
+.prose .highlight .nf,
+.prose .highlight .nb {
+  color: #82aaff;
+}
+.prose .highlight .mi,
+.prose .highlight .mf {
+  color: #f78c6c;
+}

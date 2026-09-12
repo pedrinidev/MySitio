@@ -1,0 +1,42 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "N",        # pep8-naming
+    "UP",       # pyupgrade
+    "B",        # bugbear
+    "C4",       # comprehensions
+    "DJ",       # reglas específicas de Django
+    "S",        # bandit — seguridad
+    "RUF",
+]
+ignore = [
+    "S101",   # assert: legítimo dentro de las pruebas
+    "N818",   # no exigimos el sufijo Error en las excepciones de dominio
+    # RUF012 exige ClassVar en atributos de clase mutables. Es correcto en
+    # Python genérico, pero la API de Django está definida así: list_display,
+    # prepopulated_fields, fieldsets, choices… Anotar cada uno con ClassVar
+    # añadiría ruido a cientos de líneas sin ganar seguridad real.
+    "RUF012",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/*" = ["S105", "S106"]
+"config/settings/*" = ["F403", "F405"]  # el import * entre settings es intencional
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = "migrations"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "--strict-markers --tb=short"
+testpaths = ["core", "modules"]

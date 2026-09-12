@@ -1,0 +1,10 @@
+# pedrinidev.com
+# El sitio entero es público y se quiere indexar. Lo único que se excluye
+# son las rutas del backend, que ni siquiera las sirve este dominio.
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://pedrinidev.com/sitemap-index.xml

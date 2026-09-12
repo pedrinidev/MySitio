@@ -1,0 +1,37 @@
+---
+/**
+ * Raíz del sitio.
+ *
+ * Redirige a /es/. Se hace con una etiqueta meta y no con una redirección
+ * HTTP porque el sitio es estático: no hay servidor que evalúe cabeceras.
+ * Nginx también podría hacerlo, pero dejarlo aquí mantiene el comportamiento
+ * dentro del proyecto y no atado a la configuración del servidor.
+ *
+ * Se detecta el idioma del navegador y se redirige a /en/ si corresponde:
+ * un script de cinco líneas, sin dependencias, que mejora la primera
+ * impresión de un visitante angloparlante.
+ */
+import { DEFAULT_LANGUAGE } from '../lib/i18n';
+
+const target = `/${DEFAULT_LANGUAGE}/`;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>PedriniDev</title>
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <link rel="canonical" href="https://pedrinidev.com/es/" />
+    <meta name="robots" content="noindex" />
+    <script is:inline>
+      // Si el navegador prefiere inglés, se lo damos. Cualquier otro idioma
+      // cae al español, que es el contenido principal.
+      var lang = (navigator.language || 'es').slice(0, 2);
+      window.location.replace(lang === 'en' ? '/en/' : '/es/');
+    </script>
+  </head>
+  <body>
+    <p>Redirigiendo a <a href={target}>pedrinidev.com</a>…</p>
+  </body>
+</html>

@@ -1,0 +1,137 @@
+---
+/**
+ * Estructura común de todas las páginas: cabecera, pie, SEO y arranque de
+ * animaciones.
+ *
+ * El SEO no es un extra: un portafolio que no aparece cuando alguien busca
+ * tu nombre no cumple su función. De ahí las etiquetas Open Graph, el
+ * `hreflang` entre idiomas y los datos estructurados.
+ */
+import '../styles/tokens.css';
+import { LEGAL_NAME, SITE_NAME } from '../lib/site';
+import Header from '../components/sections/Header.astro';
+import Footer from '../components/sections/Footer.astro';
+import { useTranslations, alternateLanguage } from '../lib/i18n';
+import type { Language } from '../lib/types';
+
+interface Props {
+  lang: Language;
+  title: string;
+  description: string;
+  /** Ruta equivalente en el otro idioma, para hreflang y el selector. */
+  alternatePath: string;
+  image?: string | null;
+  /** Marca la página como artículo para Open Graph. */
+  article?: { publishedAt: string; tags: string[] } | null;
+}
+
+const { lang, title, description, alternatePath, image = null, article = null } = Astro.props;
+
+const t = useTranslations(lang);
+const other = alternateLanguage(lang);
+const site = Astro.site ?? new URL('https://pedrinidev.com');
+const canonical = new URL(Astro.url.pathname, site).href;
+const alternateUrl = new URL(alternatePath, site).href;
+const ogImage = image ? new URL(image, site).href : new URL('/og-default.png', site).href;
+
+/* Datos estructurados. `name` es el nombre legal y `alternateName` la
+   marca: así el buscador encuentra el sitio tanto por «Pedro Mamani Tito»
+   como por «PedriniDev». Nada de esto se dibuja en la página — es un bloque
+   JSON-LD que solo leen los buscadores. */
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: LEGAL_NAME,
+  alternateName: SITE_NAME,
+  url: site.href,
+  jobTitle: lang === 'es' ? 'Desarrollador de Software' : 'Software Developer',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'El Alto',
+    addressRegion: 'La Paz',
+    addressCountry: 'BO',
+  },
+  sameAs: ['https://github.com/pedrinidev', 'https://linkedin.com/in/pedromamans'],
+};
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <!-- hreflang: le dice a Google que estas dos páginas son la misma en
+         idiomas distintos, en vez de contenido duplicado. -->
+    <link rel="alternate" hreflang={lang} href={canonical} />
+    <link rel="alternate" hreflang={other} href={alternateUrl} />
+    <link rel="alternate" hreflang="x-default" href={new URL('/es/', site).href} />
+
+    <meta property="og:type" content={article ? 'article' : 'website'} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content={lang === 'es' ? 'es_BO' : 'en_GB'} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    {article && <meta property="article:published_time" content={article.publishedAt} />}
+    {article?.tags.map((tag) => <meta property="article:tag" content={tag} />)}
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#06070a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="generator" content={Astro.generator} />
+
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(personSchema)} />
+
+    <!-- Marca `js-menu` ANTES del primer pintado, y SOLO para el menú.
+         Sin esto el panel móvil se vería desplegado hasta que GSAP acabara
+         de descargarse y se plegaría de golpe a la vista del visitante.
+
+         Deliberadamente NO se marca aquí `js`, que es la que pone
+         [data-reveal] en opacity:0: esa la sigue poniendo GSAP justo antes
+         de animar. Así, si el JavaScript de animación no llega a ejecutarse,
+         el contenido se queda visible en lugar de desaparecer del todo. Una
+         cosa es un menú que parpadea; otra, una página en blanco. -->
+    <script is:inline>
+      document.documentElement.classList.add('js-menu');
+
+      // Tema elegido por el visitante, aplicado ANTES del primer pintado.
+      // Hacerlo después provocaría un fogonazo del tema contrario en cada
+      // carga de página: el error más visible que puede tener un conmutador
+      // de tema. Va en línea y sin `defer` por eso mismo.
+      // Sin valor guardado no se toca nada y manda la preferencia del sistema.
+      try {
+        var saved = localStorage.getItem('theme');
+        if (saved === 'dark' || saved === 'light') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (e) {
+        // Modo privado o almacenamiento bloqueado: se sigue con el sistema.
+      }
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">{t.nav.skipToContent}</a>
+
+    <Header lang={lang} alternatePath={alternatePath} />
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <Footer lang={lang} />
+
+    <script>
+      // Las animaciones se cargan de forma diferida: GSAP no debe bloquear el
+      // primer renderizado. El contenido ya es visible sin JavaScript.
+      import('../lib/motion').then(({ initPageAnimations }) => initPageAnimations());
+    </script>
+  </body>
+</html>

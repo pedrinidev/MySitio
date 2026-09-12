@@ -1,0 +1,41 @@
+# El contexto de build es la raíz del monorepo. Sin este archivo, Docker
+# enviaría al daemon el repositorio entero —incluidos node_modules y la base
+# de datos local— en cada build.
+
+.git/
+.github/
+docs/
+*.md
+!apps/web/README.md
+
+# Nunca, bajo ningún concepto, dentro de una imagen.
+.env
+.env.*
+!.env.example
+*.pdf
+
+# Node
+**/node_modules/
+**/dist/
+**/.astro/
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.ruff_cache/
+**/venv/
+**/.venv/
+**/htmlcov/
+**/.coverage
+
+# Datos locales
+**/*.sqlite3
+**/*.sqlite3-*
+**/media/
+**/staticfiles/
+data/
+backups/
+
+# Sistema
+**/.DS_Store

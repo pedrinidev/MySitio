@@ -1,0 +1,126 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pageTitle } from '../../lib/site';
+import SectionHeading from '../ui/SectionHeading.astro';
+import ContactForm from '../islands/ContactForm';
+import { getProfile } from '../../lib/api';
+import { useTranslations, ROUTES, localePath } from '../../lib/i18n';
+import type { Language } from '../../lib/types';
+
+interface Props {
+  lang: Language;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const other: Language = lang === 'es' ? 'en' : 'es';
+const profile = await getProfile(lang);
+---
+
+<BaseLayout
+  lang={lang}
+  title={pageTitle(t.contact.title)}
+  description={t.contact.subtitle}
+  alternatePath={localePath(other, ROUTES[other].contact)}
+>
+  <div class="section container-content">
+    <SectionHeading
+      level={1}
+      eyebrow={t.nav.contact}
+      title={t.contact.title}
+      subtitle={t.contact.subtitle}
+    />
+
+    <div class="contact-grid">
+      <div data-reveal>
+        {/* client:visible: el formulario suele estar por debajo del pliegue. */}
+        <ContactForm client:visible lang={lang} dict={t} />
+      </div>
+
+      <aside class="contact-side" data-reveal>
+        <dl>
+          <dt>{t.contact.email}</dt>
+          <dd><a href={`mailto:${profile.email}`}>{profile.email}</a></dd>
+          {
+            profile.phone && (
+              <>
+                <dt>WhatsApp</dt>
+                <dd>
+                  <a
+                    href={`https://wa.me/${profile.phone.replace(/\D/g, '')}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {profile.phone}
+                  </a>
+                </dd>
+              </>
+            )
+          }
+          <dt>{t.contact.availability}</dt>
+          <dd>{profile.availability}</dd>
+        </dl>
+
+        <ul class="socials">
+          {
+            profile.socials.map((social) => (
+              <li>
+                <a href={social.url} rel="noopener noreferrer" target="_blank">
+                  {social.name}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .contact-grid {
+    display: grid;
+    gap: 3rem;
+  }
+  .contact-side {
+    align-content: start;
+    padding: 1.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-alt);
+    height: fit-content;
+  }
+  .contact-side dt {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+  }
+  .contact-side dd {
+    margin-block: 0.35rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+  .contact-side a {
+    color: var(--color-accent);
+  }
+  .socials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    list-style: none;
+    font-size: 0.875rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-line);
+  }
+  .socials a {
+    color: var(--color-text-muted);
+    padding-block: 0.5rem;
+  }
+
+  @media (min-width: 900px) {
+    .contact-grid {
+      grid-template-columns: 1fr 18rem;
+      gap: 4rem;
+    }
+  }
+</style>

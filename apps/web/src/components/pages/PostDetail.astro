@@ -1,0 +1,129 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pageTitle } from '../../lib/site';
+import { getPost } from '../../lib/api';
+import { useTranslations, ROUTES, localePath, formatDate } from '../../lib/i18n';
+import type { Language } from '../../lib/types';
+
+interface Props {
+  lang: Language;
+  slug: string;
+}
+
+const { lang, slug } = Astro.props;
+const t = useTranslations(lang);
+const other: Language = lang === 'es' ? 'en' : 'es';
+const post = await getPost(slug, lang);
+
+const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
+---
+
+<BaseLayout
+  lang={lang}
+  title={pageTitle(post.title)}
+  description={post.excerpt}
+  image={post.cover_url}
+  alternatePath={`${localePath(other, ROUTES[other].blog)}/${slug}`}
+  article={{ publishedAt: post.published_at, tags: post.tags.map((tag) => tag.name) }}
+>
+  <article class="section">
+    <header class="container-prose post-header">
+      <a href={localePath(lang, ROUTES[lang].blog)} class="back-link">← {t.blog.backToList}</a>
+
+      <p class="post-category" data-hero-item>{post.category.name}</p>
+      <h1 class="post-title" data-hero-item>{post.title}</h1>
+      <p class="post-meta" data-hero-item>
+        {t.blog.publishedOn}
+        {formatDate(post.published_at, lang)} · {post.reading_minutes}
+        {t.blog.readingTime}
+      </p>
+    </header>
+
+    {
+      post.cover_url && (
+        <div class="container-content post-cover" data-reveal>
+          <img src={post.cover_url} alt="" width={1400} height={780} />
+        </div>
+      )
+    }
+
+    {/* HTML ya renderizado y saneado en Django. */}
+    <div class="container-prose prose post-body" set:html={post.body_html} />
+
+    {
+      post.tags.length > 0 && (
+        <div class="container-prose">
+          <ul class="tag-row">
+            {post.tags.map((tag) => (
+              <li>#{tag.name}</li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+  </article>
+
+  <script is:inline define:vars={{ apiUrl, slug }}>
+    // Contador de lecturas. La página es HTML estático, así que contar en el
+    // endpoint de detalle contaría las peticiones del build, no a los
+    // lectores. sendBeacon no bloquea la navegación ni necesita framework:
+    // son cuatro líneas frente a hidratar un componente entero.
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(`${apiUrl}/blog/posts/${slug}/view/`);
+    }
+  </script>
+</BaseLayout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-bottom: 2.5rem;
+  }
+  .back-link:hover {
+    color: var(--color-accent);
+  }
+  .post-category {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .post-title {
+    margin-top: 0.6rem;
+    font-size: var(--text-display);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  .post-meta {
+    margin-top: 1.25rem;
+    font-size: 0.875rem;
+    color: var(--color-text-faint);
+  }
+  .post-cover {
+    margin-block: 3rem;
+  }
+  .post-cover img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-xl);
+    display: block;
+  }
+  .post-body {
+    margin-top: 3rem;
+  }
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-line);
+    list-style: none;
+    font-size: 0.875rem;
+    color: var(--color-text-faint);
+  }
+</style>

@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pageTitle } from '../../lib/site';
+import SectionHeading from '../ui/SectionHeading.astro';
+import ProjectFilter from '../islands/ProjectFilter';
+import { getProjects, getTechnologies } from '../../lib/api';
+import { useTranslations, ROUTES, localePath } from '../../lib/i18n';
+import type { Language } from '../../lib/types';
+
+interface Props {
+  lang: Language;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const other: Language = lang === 'es' ? 'en' : 'es';
+
+const [projects, technologies] = await Promise.all([getProjects(lang), getTechnologies(lang)]);
+---
+
+<BaseLayout
+  lang={lang}
+  title={pageTitle(t.projects.title)}
+  description={t.projects.subtitle}
+  alternatePath={localePath(other, ROUTES[other].projects)}
+>
+  <div class="section container-content">
+    <SectionHeading
+      level={1}
+      eyebrow={t.nav.projects}
+      title={t.projects.title}
+      subtitle={t.projects.subtitle}
+    />
+
+    {
+      /* client:load y no client:visible: el filtro está en la primera pantalla
+        y esperar a que "sea visible" lo dejaría muerto justo cuando se ve. */
+    }
+    <ProjectFilter
+      client:load
+      projects={projects}
+      technologies={technologies}
+      dict={t}
+      projectBasePath={localePath(lang, ROUTES[lang].projects)}
+    />
+  </div>
+</BaseLayout>

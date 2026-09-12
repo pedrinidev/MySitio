@@ -1,0 +1,69 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pageTitle } from '../../lib/site';
+import SectionHeading from '../ui/SectionHeading.astro';
+import BlogSearch from '../islands/BlogSearch';
+import BlogFilter from '../islands/BlogFilter';
+import { getPosts, getCategories, getTags } from '../../lib/api';
+import { useTranslations, ROUTES, localePath } from '../../lib/i18n';
+import type { Language } from '../../lib/types';
+
+interface Props {
+  lang: Language;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const other: Language = lang === 'es' ? 'en' : 'es';
+const blogBase = localePath(lang, ROUTES[lang].blog);
+
+const [posts, categories, tags] = await Promise.all([
+  getPosts(lang),
+  getCategories(lang),
+  getTags(lang),
+]);
+---
+
+<BaseLayout
+  lang={lang}
+  title={pageTitle(t.blog.title)}
+  description={t.blog.subtitle}
+  alternatePath={localePath(other, ROUTES[other].blog)}
+>
+  <div class="section container-content">
+    <SectionHeading
+      level={1}
+      eyebrow={t.nav.blog}
+      title={t.blog.title}
+      subtitle={t.blog.subtitle}
+    />
+
+    {
+      /* client:idle — la búsqueda es secundaria: se hidrata cuando el
+        navegador esté ocioso, sin competir con el renderizado del listado. */
+    }
+    <BlogSearch client:idle lang={lang} dict={t} blogBasePath={blogBase} />
+
+    {
+      /* client:load y no client:visible: los filtros están en la primera
+        pantalla, igual que en proyectos. Astro renderiza el listado a HTML
+        en el build, así que los posts se indexan aunque el JS nunca llegue
+        a ejecutarse. */
+    }
+    {
+      posts.length === 0 ? (
+        <p class="empty">{t.blog.empty}</p>
+      ) : (
+        <BlogFilter
+          client:load
+          lang={lang}
+          posts={posts}
+          categories={categories}
+          tags={tags}
+          dict={t}
+          blogBasePath={blogBase}
+        />
+      )
+    }
+  </div>
+</BaseLayout>

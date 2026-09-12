@@ -1,0 +1,41 @@
+---
+/**
+ * Despachador de las páginas de sección.
+ *
+ * Existe porque las URLs están traducidas: `/es/proyectos` y `/en/projects`
+ * son la misma página. El enrutado por archivos de Astro no puede expresar
+ * eso con un nombre de archivo fijo, así que `getStaticPaths` genera los
+ * pares (idioma, segmento) y este archivo delega en el componente adecuado.
+ *
+ * Las URLs se traducen a propósito: una URL en español posiciona mejor en
+ * búsquedas en español y le confirma al visitante que está donde quería.
+ */
+import ProjectsPage from '../../components/pages/ProjectsPage.astro';
+import BlogPage from '../../components/pages/BlogPage.astro';
+import GamesPage from '../../components/pages/GamesPage.astro';
+import AboutPage from '../../components/pages/AboutPage.astro';
+import ContactPage from '../../components/pages/ContactPage.astro';
+import { LANGUAGES, ROUTES } from '../../lib/i18n';
+import type { Language } from '../../lib/types';
+
+type SectionKey = 'projects' | 'blog' | 'games' | 'about' | 'contact';
+
+export function getStaticPaths() {
+  const keys: SectionKey[] = ['projects', 'blog', 'games', 'about', 'contact'];
+  return LANGUAGES.flatMap((lang) =>
+    keys.map((key) => ({
+      params: { lang, section: ROUTES[lang][key] },
+      props: { section: key },
+    })),
+  );
+}
+
+const lang = Astro.params.lang as Language;
+const { section } = Astro.props as { section: SectionKey };
+---
+
+{section === 'projects' && <ProjectsPage lang={lang} />}
+{section === 'blog' && <BlogPage lang={lang} />}
+{section === 'games' && <GamesPage lang={lang} />}
+{section === 'about' && <AboutPage lang={lang} />}
+{section === 'contact' && <ContactPage lang={lang} />}
