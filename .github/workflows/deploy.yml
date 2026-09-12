@@ -1,0 +1,211 @@
+# Despliegue a producción.
+#
+# El orden de los trabajos NO es arbitrario:
+#
+#   1. CI en verde (nada roto sale)
+#   2. Construir y publicar la imagen de la API
+#   3. Desplegar la API en el droplet   ← debe estar VIVA antes del paso 4
+#   4. Construir la imagen del sitio, que consulta esa API para prerenderizar
+#   5. Desplegar el sitio
+#
+# Invertir 3 y 4 es el error clásico: Astro pediría los datos a la API
+# anterior —o, en el primer despliegue, a ninguna— y publicaría un sitio
+# desfasado o vacío. Ver docs/decisions.md, ADR-001.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # Sin cancel-in-progress: cancelar un despliegue a medias deja el droplet
+  # con la API nueva y el sitio viejo. Mejor encolar y terminar.
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BASE: ghcr.io/${{ github.repository }}
+
+jobs:
+  # ── 1. ¿Tiene sentido desplegar? ────────────────────────────────
+  #
+  # Sin este trabajo, un repositorio recién clonado —o uno al que todavía
+  # no se le cargaron los secretos— fallaría en el paso de SSH con un error
+  # de conexión que no explica nada. Así la ejecución queda en verde,
+  # valida la calidad y dice en voz alta que no hay servidor.
+  servidor:
+    name: ¿Hay servidor configurado?
+    runs-on: ubuntu-latest
+    outputs:
+      listo: ${{ steps.comprobar.outputs.listo }}
+    steps:
+      - id: comprobar
+        run: |
+          if [ -n "${{ secrets.DROPLET_HOST }}" ]; then
+            echo "listo=true" >> "$GITHUB_OUTPUT"
+            echo "Droplet configurado: se desplegará."
+          else
+            echo "listo=false" >> "$GITHUB_OUTPUT"
+            echo "Sin DROPLET_HOST: se omite el despliegue y solo se valida la calidad."
+          fi
+
+  # ── 2. Calidad ──────────────────────────────────────────────────
+  quality:
+    name: Calidad
+    uses: ./.github/workflows/ci.yml
+
+  # ── 3. Imagen de la API ─────────────────────────────────────────
+  build-api:
+    name: Construir imagen de la API
+    needs: [quality, servidor]
+    if: needs.servidor.outputs.listo == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # GHCR exige el nombre en minúsculas y `github.repository` conserva
+      # las mayúsculas del repositorio (MySitio). Sin esto, el push falla
+      # con un error que no menciona las mayúsculas por ningún lado.
+      - id: meta
+        name: Calcular el nombre de la imagen
+        run: |
+          IMAGE=$(echo "${{ env.IMAGE_BASE }}-api" | tr '[:upper:]' '[:lower:]')
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "Imagen: $IMAGE"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Se etiqueta con el SHA además de `latest`: es lo que permite volver
+      # atrás cambiando una variable, sin reconstruir nada.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/api.Dockerfile
+          target: prod
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 4. Desplegar la API ─────────────────────────────────────────
+  deploy-api:
+    name: Desplegar la API
+    needs: build-api
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Actualizar la API en el droplet
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd /srv/mysite
+            export API_IMAGE="${{ needs.build-api.outputs.image }}:${{ github.sha }}"
+            docker compose -f compose.prod.yml pull api
+            docker compose -f compose.prod.yml up -d api
+            docker compose -f compose.prod.yml exec -T api python manage.py migrate --noinput
+
+            # Se espera a que responda antes de dar el paso por bueno: el
+            # trabajo siguiente compila el sitio consultando esta API, y si
+            # todavía no arrancó publicaría un sitio vacío.
+            for i in $(seq 1 30); do
+              if docker compose -f compose.prod.yml exec -T api \
+                   python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/', timeout=3).status==200 else 1)"; then
+                echo "API viva tras ${i} intento(s)."
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "La API no respondió al healthcheck." >&2
+            exit 1
+
+  # ── 5. Imagen del sitio ─────────────────────────────────────────
+  build-web:
+    name: Construir el sitio
+    needs: [build-api, deploy-api]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: meta
+        name: Calcular el nombre de la imagen
+        run: |
+          IMAGE=$(echo "${{ env.IMAGE_BASE }}-web" | tr '[:upper:]' '[:lower:]')
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "Imagen: $IMAGE"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # BUILD_API_TOKEN va como SECRETO de BuildKit, nunca como build-arg.
+      # Un build-arg queda escrito en los metadatos de la imagen y
+      # `docker history` lo muestra a cualquiera que descargue la imagen
+      # desde GHCR — que es pública. El secreto solo existe durante el RUN.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/web.Dockerfile
+          target: prod
+          push: true
+          build-args: |
+            PUBLIC_API_URL=https://pedrinidev.com/api/v1
+            PUBLIC_SITE_URL=https://pedrinidev.com
+          secrets: |
+            build_token=${{ secrets.BUILD_API_TOKEN }}
+          tags: |
+            ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 6. Desplegar el sitio ───────────────────────────────────────
+  deploy-web:
+    name: Desplegar el sitio
+    needs: [build-web]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Actualizar el sitio en el droplet
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd /srv/mysite
+            export WEB_IMAGE="${{ needs.build-web.outputs.image }}:${{ github.sha }}"
+            docker compose -f compose.prod.yml pull web
+            docker compose -f compose.prod.yml up -d web
+            docker compose -f compose.prod.yml ps

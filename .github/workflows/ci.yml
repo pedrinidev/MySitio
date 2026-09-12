@@ -1,0 +1,85 @@
+# Calidad. Corre en las ramas de trabajo, en cada pull request, y como
+# puerta previa del despliegue.
+#
+# Deliberadamente NO despliega: separar «¿esto está bien?» de «esto sale a
+# producción» permite exigir que CI pase antes de fusionar, sin que cada
+# rama toque el servidor.
+#
+# `main` NO está en la lista de push a propósito. En esa rama la calidad ya
+# la ejecuta deploy.yml a través de `workflow_call`, así que tenerla también
+# aquí lanzaba dos ejecuciones simultáneas; el grupo de concurrencia mataba
+# una y GitHub pinta los cancelados con la misma cruz roja que los fallos.
+# El resultado era un repositorio público con aspecto de estar roto cuando
+# todo estaba en verde.
+
+name: CI
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [main]
+  workflow_call: # deploy.yml lo reutiliza como puerta previa
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API — estilo y pruebas
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # La misma versión que la imagen de producción (python:3.12-alpine).
+      # Probar con una distinta es probar otro programa.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/api/requirements/*.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements/dev.txt
+
+      - name: Estilo (ruff)
+        run: ruff check .
+
+      - name: Formato (black)
+        run: black --check .
+
+      - name: Pruebas
+        run: pytest -q
+
+  web:
+    name: Sitio — estilo y tipos
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # La misma versión que la imagen de producción (node:24-alpine).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Formato (prettier)
+        run: npm run lint
+
+      # `astro check` valida los tipos de los componentes y de las islas.
+      # No compila el sitio: eso necesita la API en pie y ocurre en deploy.yml.
+      - name: Tipos (astro check)
+        run: npm run check
