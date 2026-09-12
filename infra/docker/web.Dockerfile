@@ -53,7 +53,24 @@ COPY apps/web/ ./
 # Sin el token el build funciona igual, pero la API puede devolverle 429:
 # prerenderizar el sitio son ~22 peticiones en pocos segundos desde una sola
 # IP, justo el patrón que el límite anónimo existe para frenar.
+# CONTENT_STAMP existe SOLO para invalidar la caché de esta capa, y es
+# imprescindible aunque parezca un truco sucio.
+#
+# La clave de caché de un RUN son los archivos copiados antes y el texto del
+# comando. Pero lo que este paso produce no depende solo de eso: Astro va a
+# buscar los datos a la API en el momento de compilar. Publicás un post o
+# cambiás un correo en el admin, el repositorio no se mueve, y BuildKit
+# reutiliza la capa compilada de antes — devolviendo el sitio VIEJO dentro
+# de una imagen nueva, en un flujo verde de 38 segundos.
+#
+# Eso dejaba al flujo «Reconstruir contenido» sin poder reconstruir nada,
+# que es literalmente su única función. Pasando un valor distinto en cada
+# ejecución, esta capa y las siguientes se rehacen siempre. Las de arriba
+# —`npm ci`— siguen cacheadas, así que cuesta segundos, no minutos.
+ARG CONTENT_STAMP=sin-marca
+
 RUN --mount=type=secret,id=build_token \
+    CONTENT_STAMP="$CONTENT_STAMP" \
     BUILD_API_TOKEN="$(cat /run/secrets/build_token 2>/dev/null || true)" \
     npm run build:ci
 

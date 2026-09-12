@@ -61,6 +61,7 @@ jobs:
           build-args: |
             PUBLIC_API_URL=https://pedrinidev.com/api/v1
             PUBLIC_SITE_URL=https://pedrinidev.com
+            CONTENT_STAMP=${{ github.run_id }}-${{ github.run_attempt }}
           secrets: |
             build_token=${{ secrets.BUILD_API_TOKEN }}
           # El sufijo «-contenido» distingue las reconstrucciones por
