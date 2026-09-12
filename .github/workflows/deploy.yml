@@ -67,7 +67,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image: ${{ steps.meta.outputs.image }}
+      ref: ${{ steps.meta.outputs.ref }}
 
     steps:
       - uses: actions/checkout@v4
@@ -76,11 +76,13 @@ jobs:
       # las mayúsculas del repositorio (MySitio). Sin esto, el push falla
       # con un error que no menciona las mayúsculas por ningún lado.
       - id: meta
-        name: Calcular el nombre de la imagen
+        name: Calcular nombre y versión de la imagen
         run: |
           IMAGE=$(echo "${{ env.IMAGE_BASE }}-api" | tr '[:upper:]' '[:lower:]')
+          VERSION="$(date -u +%Y.%m.%d)-$(echo "${{ github.sha }}" | cut -c1-7)"
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
-          echo "Imagen: $IMAGE"
+          echo "ref=$IMAGE:$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publicando: $IMAGE:$VERSION"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -103,9 +105,14 @@ jobs:
           file: infra/docker/api.Dockerfile
           target: prod
           push: true
-          tags: |
-            ${{ steps.meta.outputs.image }}:latest
-            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+          # UNA sola etiqueta, y `latest` NO se publica.
+          #
+          # `latest` era el valor por defecto de compose, así que cualquier
+          # comando que no definiera la variable arrancaba en silencio una
+          # imagen vieja. Un despliegue entero en verde con la API anterior
+          # corriendo: ya pasó. Sin esa etiqueta, cada arranque nombra la
+          # versión exacta o falla.
+          tags: ${{ steps.meta.outputs.ref }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -125,9 +132,27 @@ jobs:
           script_stop: true
           script: |
             cd /srv/mysite
-            export API_IMAGE="${{ needs.build-api.outputs.image }}:${{ github.sha }}"
+            API_IMAGE="${{ needs.build-api.outputs.ref }}"
+            export API_IMAGE
+
+            # La versión desplegada queda ESCRITA en el .env del servidor.
+            #
+            # Sin esto vive solo en la variable de este script: en cuanto
+            # termina, cualquier `docker compose up -d` hecho a mano —o por
+            # cron— resuelve la imagen a su valor por defecto y arranca otra
+            # cosa. Grabada aquí, el droplet recuerda qué versión corre y
+            # todos los comandos coinciden.
+            #
+            # Y es también el interruptor para volver atrás: se cambia esta
+            # línea por una versión anterior y `up -d`. Nada más.
+            touch .env
+            grep -v '^API_IMAGE=' .env > .env.nuevo || true
+            echo "API_IMAGE=$API_IMAGE" >> .env.nuevo
+            mv .env.nuevo .env
+            chmod 600 .env
+
             docker compose -f compose.prod.yml pull api
-            docker compose -f compose.prod.yml up -d api
+            docker compose -f compose.prod.yml up -d --no-deps api
             docker compose -f compose.prod.yml exec -T api python manage.py migrate --noinput
 
             # Se espera a que responda antes de dar el paso por bueno: el
@@ -153,17 +178,19 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image: ${{ steps.meta.outputs.image }}
+      ref: ${{ steps.meta.outputs.ref }}
 
     steps:
       - uses: actions/checkout@v4
 
       - id: meta
-        name: Calcular el nombre de la imagen
+        name: Calcular nombre y versión de la imagen
         run: |
           IMAGE=$(echo "${{ env.IMAGE_BASE }}-web" | tr '[:upper:]' '[:lower:]')
+          VERSION="$(date -u +%Y.%m.%d)-$(echo "${{ github.sha }}" | cut -c1-7)"
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
-          echo "Imagen: $IMAGE"
+          echo "ref=$IMAGE:$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publicando: $IMAGE:$VERSION"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -188,9 +215,14 @@ jobs:
             PUBLIC_SITE_URL=https://pedrinidev.com
           secrets: |
             build_token=${{ secrets.BUILD_API_TOKEN }}
-          tags: |
-            ${{ steps.meta.outputs.image }}:latest
-            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+          # UNA sola etiqueta, y `latest` NO se publica.
+          #
+          # `latest` era el valor por defecto de compose, así que cualquier
+          # comando que no definiera la variable arrancaba en silencio una
+          # imagen vieja. Un despliegue entero en verde con la API anterior
+          # corriendo: ya pasó. Sin esa etiqueta, cada arranque nombra la
+          # versión exacta o falla.
+          tags: ${{ steps.meta.outputs.ref }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -210,7 +242,30 @@ jobs:
           script_stop: true
           script: |
             cd /srv/mysite
-            export WEB_IMAGE="${{ needs.build-web.outputs.image }}:${{ github.sha }}"
+            WEB_IMAGE="${{ needs.build-web.outputs.ref }}"
+            export WEB_IMAGE
+
+            # Igual que con la API: la versión se graba, no solo se exporta.
+            touch .env
+            grep -v '^WEB_IMAGE=' .env > .env.nuevo || true
+            echo "WEB_IMAGE=$WEB_IMAGE" >> .env.nuevo
+            mv .env.nuevo .env
+            chmod 600 .env
+
             docker compose -f compose.prod.yml pull web
-            docker compose -f compose.prod.yml up -d web
-            docker compose -f compose.prod.yml ps
+
+            # --no-deps es OBLIGATORIO aquí, no una optimización.
+            #
+            # `web` declara depends_on: api, así que sin esto `up -d web`
+            # levanta también la API — y en ESTE trabajo API_IMAGE no está
+            # definida, con lo que resuelve a su valor por defecto (:latest)
+            # y recrea la API con la imagen ANTERIOR, pisando el despliegue
+            # que acaba de hacerse dos pasos antes.
+            #
+            # El síntoma es de los peores: los seis trabajos en verde, el
+            # sitio nuevo publicado, y la API corriendo código viejo.
+            docker compose -f compose.prod.yml up -d --no-deps web
+
+            echo "── Versiones desplegadas ──"
+            grep -E '^(API|WEB)_IMAGE=' .env
+            docker ps --format '{{.Names}}  {{.Image}}  {{.Status}}'

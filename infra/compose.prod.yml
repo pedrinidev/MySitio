@@ -9,7 +9,18 @@ name: mysite
 
 services:
   api:
-    image: ${API_IMAGE:-ghcr.io/pedrinidev/mysitio-api:latest}
+    # Sin valor por defecto, y a propósito.
+    #
+    # Antes decía «:-...mysitio-api:latest». Esa red de seguridad era en
+    # realidad una trampa: cualquier comando que no definiera la variable
+    # arrancaba la imagen `latest` cacheada en el disco —vieja— sin decir
+    # una palabra. Un despliegue terminó en verde, con el sitio nuevo
+    # publicado y la API corriendo código anterior.
+    #
+    # Con «:?» compose se niega a arrancar y dice qué falta. El despliegue
+    # graba la versión en /srv/mysite/.env, así que en uso normal no se ve
+    # nunca; solo salta si alguien ejecuta compose donde no debe.
+    image: ${API_IMAGE:?Falta API_IMAGE. Debería estar en /srv/mysite/.env, escrita por el despliegue.}
     container_name: mysite-api
     restart: unless-stopped
     env_file: .env
@@ -53,7 +64,7 @@ services:
           memory: 260M
 
   web:
-    image: ${WEB_IMAGE:-ghcr.io/pedrinidev/mysitio-web:latest}
+    image: ${WEB_IMAGE:?Falta WEB_IMAGE. Debería estar en /srv/mysite/.env, escrita por el despliegue.}
     environment:
       # Nginx necesita saber qué ruta reenviar al admin. Sale del mismo .env
       # que usa Django, así que las dos mitades no pueden desincronizarse.

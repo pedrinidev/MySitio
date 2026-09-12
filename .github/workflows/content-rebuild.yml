@@ -34,10 +34,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - id: meta
-        name: Calcular el nombre de la imagen
+        name: Calcular nombre y versión de la imagen
         run: |
           IMAGE=$(echo "${{ env.IMAGE_BASE }}-web" | tr '[:upper:]' '[:lower:]')
-          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          VERSION="$(date -u +%Y.%m.%d)-$(echo "${{ github.sha }}" | cut -c1-7)-contenido"
+          echo "ref=$IMAGE:$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publicando: $IMAGE:$VERSION"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -61,9 +63,11 @@ jobs:
             PUBLIC_SITE_URL=https://pedrinidev.com
           secrets: |
             build_token=${{ secrets.BUILD_API_TOKEN }}
-          tags: |
-            ${{ steps.meta.outputs.image }}:latest
-            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+          # El sufijo «-contenido» distingue las reconstrucciones por
+          # publicación de las de un cambio de código: mismo commit, sitio
+          # distinto. Sin él, dos publicaciones seguidas del mismo commit
+          # producirían la misma etiqueta y no se sabría cuál está viva.
+          tags: ${{ steps.meta.outputs.ref }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -76,6 +80,16 @@ jobs:
           script_stop: true
           script: |
             cd /srv/mysite
-            export WEB_IMAGE="${{ steps.meta.outputs.image }}:${{ github.sha }}"
+            WEB_IMAGE="${{ steps.meta.outputs.ref }}"
+            export WEB_IMAGE
+
+            touch .env
+            grep -v '^WEB_IMAGE=' .env > .env.nuevo || true
+            echo "WEB_IMAGE=$WEB_IMAGE" >> .env.nuevo
+            mv .env.nuevo .env
+            chmod 600 .env
+
             docker compose -f compose.prod.yml pull web
-            docker compose -f compose.prod.yml up -d web
+            # --no-deps: `web` declara depends_on api, y sin esto se
+            # recrearía también la API con la imagen por defecto.
+            docker compose -f compose.prod.yml up -d --no-deps web
