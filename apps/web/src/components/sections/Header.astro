@@ -1,4 +1,5 @@
 ---
+import LogoMark from '../ui/LogoMark.astro';
 import { useTranslations, alternateLanguage, ROUTES, localePath } from '../../lib/i18n';
 import type { Language } from '../../lib/types';
 
@@ -28,22 +29,7 @@ const isActive = (href: string) =>
 <header class="site-header">
   <div class="container-content header-inner">
     <a href={localePath(lang)} class="brand" aria-label="PedriniDev">
-      {
-        /* <picture> y no CSS: el navegador elige la variante ANTES de
-          descargar, así que nunca baja las dos ni enseña la equivocada
-          durante un instante. Y funciona sin JavaScript. */
-      }
-      <picture>
-        <source srcset="/logo-mark-dark.png" media="(prefers-color-scheme: dark)" />
-        <img
-          src="/logo-mark-light.png"
-          alt=""
-          class="brand-mark"
-          width="28"
-          height="28"
-          decoding="async"
-        />
-      </picture>
+      <LogoMark />
       <span class="brand-name">PedriniDev</span>
     </a>
 
@@ -248,12 +234,6 @@ const isActive = (href: string) =>
   /* El logotipo ya trae su forma y su color: nada de fondo ni de caja
      detrás. El ancho y el alto van en el HTML para que no salte el diseño
      mientras carga. */
-  .brand-mark {
-    display: block;
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
   .nav-list {
     display: flex;
     gap: 1.75rem;

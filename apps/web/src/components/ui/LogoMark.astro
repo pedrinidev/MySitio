@@ -1,0 +1,72 @@
+---
+/**
+ * La marca de PedriniDev, incrustada en el HTML y no cargada como imagen.
+ *
+ * Va en línea por una razón concreta: el trazo de la «P» usa
+ * `currentColor`, y eso solo funciona cuando el SVG forma parte del
+ * documento. Un `<img src>` o un `background-image` cargan un documento
+ * aparte que no hereda nada del color de la página, y la «P» saldría negra
+ * siempre —invisible sobre el fondo oscuro—.
+ *
+ * Así, un único archivo sustituye a los dos PNG que había antes (uno por
+ * tema, 19 KB entre los dos y con el riesgo de que se desincronizaran). La
+ * «P» toma el color del texto, que ya cambia solo con el tema, y el resto
+ * —la «D» azul y el `</>`— se lee bien sobre cualquier fondo.
+ *
+ * Incrustarlo además ahorra una petición: son ~2,4 KB de HTML, menos de un
+ * kilobyte una vez comprimido.
+ */
+
+/*
+ * El tamaño se controla con la variable `--logo-size` y NO con una clase.
+ *
+ * Los estilos con ámbito de Astro solo alcanzan a los elementos de la
+ * plantilla donde se escriben. Una regla `.brand-mark { width: … }` puesta
+ * en Header.astro compila a `.brand-mark[data-astro-cid-XXXX]`, y este SVG
+ * —que pertenece a OTRO componente— no lleva ese atributo: la regla no
+ * coincide, el SVG se queda sin tamaño y desaparece. Pasó, y no avisa.
+ *
+ * Las variables CSS sí cruzan esa frontera, porque se heredan por el árbol
+ * del documento y no dependen del ámbito.
+ */
+---
+
+<style>
+  svg {
+    display: block;
+    width: var(--logo-size, 1.75rem);
+    height: var(--logo-size, 1.75rem);
+  }
+</style>
+
+<svg aria-hidden="true" viewBox="0 0 481 478" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path
+    d="M165.903 295.677L98.4308 372.177C97.2917 373.469 98.1755 375.5 99.8975 375.5H320.5C369.5 375.5 480.5 320 480.5 193C480.5 66 371 -1.87608e-05 296 0H18.8694C17.0733 0 16.2492 2.18377 17.5378 3.43491L99.418 82.9349C99.7912 83.2973 100.291 83.5 100.811 83.5H287C339.5 83.5 395.5 121.5 395.5 193C395.5 268.04 327 295 299.5 295H167.403C166.829 295 166.283 295.247 165.903 295.677Z"
+    fill="url(#pd-logo-grad)"></path>
+  <path
+    d="M294.559 142.399C294.822 141.566 295.594 141 296.466 141L311.272 141C312.624 141 313.586 142.313 313.18 143.601L279.22 251.301C279.089 251.717 278.703 252 278.267 252L261.364 252C260.688 252 260.207 251.344 260.41 250.699L294.559 142.399Z"
+    fill="#0BA3FD"></path>
+  <path
+    d="M248.629 159.479C249.54 158.694 250.934 158.884 251.6 159.885L259.035 171.051C259.588 171.881 259.444 172.993 258.697 173.655L235.206 194.487C234.302 195.289 234.309 196.702 235.222 197.494L258.692 217.865C259.443 218.516 259.601 219.621 259.063 220.457L252.207 231.122C251.563 232.124 250.191 232.345 249.266 231.595L212.241 201.6C211.772 201.221 211.5 200.65 211.5 200.046L211.5 192.416C211.5 191.834 211.753 191.282 212.194 190.902L248.629 159.479Z"
+    fill="#0BA3FD"></path>
+  <path
+    d="M325.174 159.479C324.263 158.694 322.869 158.884 322.203 159.885L314.768 171.051C314.215 171.881 314.359 172.993 315.106 173.655L338.597 194.487C339.501 195.289 339.494 196.702 338.581 197.494L315.111 217.865C314.36 218.516 314.202 219.621 314.74 220.457L321.596 231.122C322.24 232.124 323.612 232.345 324.537 231.595L361.562 201.6C362.031 201.221 362.303 200.65 362.303 200.046L362.303 192.416C362.303 191.834 362.05 191.282 361.609 190.902L325.174 159.479Z"
+    fill="#0BA3FD"></path>
+  <path
+    d="M0 212.41C0 211.832 0.250227 211.282 0.686165 210.902L100.435 123.992C100.799 123.675 101.266 123.5 101.749 123.5H228.198C230.042 123.5 230.904 125.784 229.519 127.002L84.6791 254.403C84.2474 254.782 84 255.329 84 255.904V403.096C84 403.671 83.7531 404.218 83.3221 404.597L3.32206 475.073C2.03032 476.211 0 475.294 0 473.573V212.41Z"
+    fill="currentColor"></path>
+  <defs>
+    <linearGradient
+      id="pd-logo-grad"
+      x1="43"
+      y1="188"
+      x2="481"
+      y2="188"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0.000155699" stop-color="#6CCCF7"></stop>
+      <stop offset="0.144231" stop-color="#419EF2"></stop>
+      <stop offset="1" stop-color="#015AEB"></stop>
+    </linearGradient>
+  </defs>
+</svg>
