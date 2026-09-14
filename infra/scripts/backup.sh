@@ -28,6 +28,37 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/srv/mysite}"
 COMPOSE="docker compose -f $APP_DIR/compose.prod.yml"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
+
+# ── Aviso de fallo ───────────────────────────────────────────────────
+#
+# Un respaldo que falla en silencio es peor que no tener respaldo: encima
+# da confianza. Este guion lo ejecuta cron de madrugada, así que nadie ve
+# su salida; escribirla en un registro solo traslada el problema a un
+# archivo que tampoco se lee.
+#
+# Se avisa por Telegram, que es donde ya llegan los mensajes del
+# formulario. Se manda por `curl` directo a la API y NO a través de Django:
+# si la API está caída —una de las razones plausibles de que el respaldo
+# falle— el aviso tiene que salir igual.
+#
+# Solo se avisa de los FALLOS. Un mensaje cada noche diciendo «todo bien»
+# se silencia en una semana, y entonces el que importa pasa desapercibido.
+avisar_fallo() {
+    local codigo=$?
+    [ "$codigo" -eq 0 ] && return 0
+
+    local token chat
+    token=$(grep -m1 "^TELEGRAM_BOT_TOKEN=" "$APP_DIR/.env" 2>/dev/null | cut -d= -f2-)
+    chat=$(grep -m1 "^TELEGRAM_CHAT_ID=" "$APP_DIR/.env" 2>/dev/null | cut -d= -f2-)
+    [ -n "$token" ] && [ -n "$chat" ] || return 0
+
+    curl -s -m 15 -o /dev/null \
+        "https://api.telegram.org/bot${token}/sendMessage" \
+        -d "chat_id=${chat}" \
+        -d "text=⚠️ El respaldo de pedrinidev.com FALLÓ (código ${codigo}) en $(hostname) a las $(date '+%H:%M del %d/%m'). Revisá: ssh droplet y luego cd /srv/mysite && ./backup.sh" \
+        || true
+}
+trap avisar_fallo EXIT
 STAMP="$(date +%F)"
 
 cd "$APP_DIR"

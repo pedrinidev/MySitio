@@ -393,16 +393,24 @@ docker run --rm -v mysite_api_data:/data alpine ls -la /data/backups/
 tail -5 /srv/mysite/backup.log
 ```
 
-**Hacelo de vez en cuando.** El respaldo corre a las 3:30 por cron y durante
-los primeros días falló **todas las noches en silencio**: el guion llamaba al
-binario `sqlite3`, que está instalado en el host pero no dentro del
-contenedor de la API, y el cron mandaba la salida a `/dev/null`. La carpeta
-de respaldos llevaba días vacía sin que nada lo delatara. Ahora el guion usa
-el módulo `sqlite3` de Python —la misma API de respaldo en línea— y el cron
-escribe en `backup.log`.
-
 Un respaldo que falla en silencio es peor que no tener respaldo: encima da
-confianza.
+confianza. Ya pasó una vez —el guion llamaba al binario `sqlite3`, que está
+en el host pero no dentro del contenedor, y la carpeta llevaba días vacía sin
+que nada lo delatara—. Por eso hay tres capas, y cada una cubre lo que la
+anterior no ve:
+
+| Qué falla | Quién lo detecta |
+|---|---|
+| El respaldo se ejecuta y **da error** | `backup.sh` avisa por **Telegram** |
+| El cron **deja de ejecutarse** | `traer-respaldos.sh` ve copias viejas y protesta |
+| La copia llega **corrupta** | `traer-respaldos.sh` la restaura y la verifica |
+
+El aviso de fallo va por `curl` directo a la API de Telegram y **no** a través
+de Django: si la API está caída —una de las razones plausibles de que el
+respaldo falle— el aviso tiene que salir igual.
+
+Solo se avisa de los fallos. Un mensaje cada noche diciendo «todo bien» se
+silencia en una semana, y entonces el que importa pasa desapercibido.
 
 ### Restaurar la base de datos
 
@@ -430,13 +438,38 @@ print(con.execute('SELECT COUNT(*) FROM projects_project').fetchone()[0], 'proye
 ### Sacar los respaldos del droplet
 
 Los respaldos viven en el **mismo servidor** que protegen. Eso cubre un error
-humano o una migración mal aplicada; **no cubre perder el droplet**. Para eso
-hay que sacarlos fuera, y esto se ejecuta desde tu equipo:
+humano o una migración mal aplicada; **no cubre perder el droplet**.
 
 ```bash
-rsync -az -e "ssh -i ~/.ssh/pedrinidev" \
-  deploy@pedrinidev.com:/var/lib/docker/volumes/mysite_api_data/_data/backups/ \
-  ~/Respaldos/pedrinidev/
+infra/scripts/traer-respaldos.sh
+```
+
+Trae las copias a `~/Respaldos/pedrinidev`, descomprime la más reciente y le
+pide a SQLite que se revise: si la copia llegara corrupta, el guion falla en
+vez de dejarte creer que estás cubierto.
+
+**Por qué no es un `rsync` directo.** Lo natural sería apuntar a la carpeta
+del volumen en el host:
+
+```
+/var/lib/docker/volumes/mysite_api_data/_data/backups   →   Permission denied
+```
+
+Ese árbol es de `root` (`drwx--x---`) y el usuario `deploy` no puede leerlo.
+Sí puede hablar con Docker, así que el guion lanza un contenedor mínimo que
+empaqueta la carpeta y la manda por la salida estándar. Sin `sudo`, sin tocar
+permisos del servidor.
+
+**Automatizado.** Un agente de launchd lo ejecuta a diario a las 13:00; si el
+Mac está dormido a esa hora, se ejecuta al despertar en vez de saltarse el
+día. El agente apunta a una copia del guion en `~/bin`, **no** a este
+repositorio: macOS protege `~/Desktop` y una tarea programada que lea ahí
+recibe «Operation not permitted» y falla en silencio.
+
+```bash
+cat ~/Library/Logs/pedrinidev-respaldos.log     # qué hizo la última vez
+launchctl list | grep pedrinidev                # 0 en la segunda columna = bien
+launchctl unload ~/Library/LaunchAgents/com.pedrinidev.respaldos.plist   # desactivar
 ```
 
 ---
