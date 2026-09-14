@@ -9,8 +9,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { SITE_NAME } from '../../lib/site';
 import Hero from '../../components/sections/Hero.astro';
 import SectionHeading from '../../components/ui/SectionHeading.astro';
-import TechBadge from '../../components/ui/TechBadge.astro';
 import MetricsDashboard from '../../components/islands/MetricsDashboard';
+import ProjectRail from '../../components/islands/ProjectRail';
 import { getProfile, getProjects, getPosts } from '../../lib/api';
 import { useTranslations, ROUTES, localePath, LANGUAGES, formatDate } from '../../lib/i18n';
 import type { Language } from '../../lib/types';
@@ -30,7 +30,11 @@ const [profile, projects, posts] = await Promise.all([
   getPosts(lang),
 ]);
 
-const featured = projects.filter((project) => project.featured).slice(0, 3);
+// El carril del inicio enseña una SELECCIÓN, no el catálogo: para eso está
+// la página de Proyectos. Si no hay destacados marcados cae a los primeros,
+// para que la portada nunca quede sin nada que mostrar.
+const destacados = projects.filter((project) => project.featured);
+const featured = (destacados.length > 0 ? destacados : projects).slice(0, 6);
 const latestPosts = posts.slice(0, 3);
 ---
 
@@ -49,35 +53,19 @@ const latestPosts = posts.slice(0, 3);
       subtitle={t.projects.subtitle}
     />
 
-    <ul class="featured-grid">
-      {
-        featured.map((project, index) => (
-          <li class="featured-card" data-reveal data-reveal-delay={index * 0.08}>
-            <a href={`${localePath(lang, r.projects)}/${project.slug}`}>
-              {project.cover_url ? (
-                <img src={project.cover_url} alt="" width={800} height={500} loading="lazy" />
-              ) : (
-                <div class="cover-placeholder" aria-hidden="true">
-                  <span>{project.title.slice(0, 2).toUpperCase()}</span>
-                </div>
-              )}
-              <div class="featured-body">
-                <p class="featured-year">{project.year}</p>
-                <h3>{project.title}</h3>
-                <p class="featured-tagline">{project.tagline}</p>
-                <ul class="badge-row">
-                  {project.technologies.slice(0, 3).map((tech) => (
-                    <li>
-                      <TechBadge tech={tech} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </a>
-          </li>
-        ))
-      }
-    </ul>
+    {
+      /* client:visible — el carril se mueve solo, así que su JavaScript no
+        se descarga hasta que entra en pantalla. Quien solo lee el hero no
+        lo paga. */
+    }
+    <div data-reveal>
+      <ProjectRail
+        client:visible
+        projects={featured}
+        dict={t}
+        projectBasePath={localePath(lang, r.projects)}
+      />
+    </div>
 
     <a href={localePath(lang, r.projects)} class="section-link">{t.projects.title} →</a>
   </section>
@@ -130,73 +118,6 @@ const latestPosts = posts.slice(0, 3);
 </BaseLayout>
 
 <style>
-  .featured-grid {
-    display: grid;
-    gap: 1.5rem;
-    list-style: none;
-  }
-
-  .featured-card a {
-    display: block;
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    background: var(--color-surface);
-    transition:
-      transform 0.4s var(--ease-out-soft),
-      box-shadow 0.4s var(--ease-out-soft);
-  }
-  .featured-card a:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lift);
-  }
-
-  .featured-card img,
-  .cover-placeholder {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    object-fit: cover;
-    display: block;
-  }
-
-  .cover-placeholder {
-    display: grid;
-    place-items: center;
-    background: var(--color-surface-sunken);
-    color: var(--color-text-faint);
-    font-size: 2rem;
-    font-weight: 600;
-    letter-spacing: -0.03em;
-  }
-
-  .featured-body {
-    padding: 1.5rem;
-  }
-  .featured-year {
-    font-size: 0.8125rem;
-    color: var(--color-text-faint);
-  }
-  .featured-body h3 {
-    margin-top: 0.35rem;
-    font-size: 1.375rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-  .featured-tagline {
-    margin-top: 0.6rem;
-    font-size: 0.9375rem;
-    line-height: 1.5;
-    color: var(--color-text-muted);
-  }
-
-  .badge-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 1.1rem;
-    list-style: none;
-  }
-
   .section-link {
     display: inline-block;
     margin-top: 2.5rem;
@@ -269,19 +190,10 @@ const latestPosts = posts.slice(0, 3);
   }
 
   @media (min-width: 720px) {
-    .featured-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
     .post-row {
       grid-template-columns: 9rem 1fr auto;
       align-items: baseline;
       gap: 1.5rem;
-    }
-  }
-
-  @media (min-width: 1040px) {
-    .featured-grid {
-      grid-template-columns: repeat(3, 1fr);
     }
   }
 </style>
