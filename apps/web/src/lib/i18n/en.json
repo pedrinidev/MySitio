@@ -55,6 +55,7 @@
   "games": {
     "title": "Games",
     "subtitle": "Because a portfolio can be fun too.",
+    "backToList": "Back to games",
     "play": "Play",
     "playAgain": "Play again",
     "start": "Start",

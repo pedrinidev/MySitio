@@ -1,6 +1,6 @@
 ---
 /**
- * Despachador de páginas de detalle: proyectos y publicaciones del blog.
+ * Despachador de páginas de detalle: proyectos, publicaciones y juegos.
  *
  * `getStaticPaths` consulta a Django en tiempo de build y genera una ruta por
  * cada contenido publicado y cada idioma. Si Django no responde, el cliente
@@ -8,7 +8,8 @@
  */
 import ProjectDetail from '../../../components/pages/ProjectDetail.astro';
 import PostDetail from '../../../components/pages/PostDetail.astro';
-import { getProjects, getPosts } from '../../../lib/api';
+import GameDetail from '../../../components/pages/GameDetail.astro';
+import { getProjects, getPosts, getGames } from '../../../lib/api';
 import { LANGUAGES, ROUTES } from '../../../lib/i18n';
 import type { Language } from '../../../lib/types';
 
@@ -16,7 +17,11 @@ export async function getStaticPaths() {
   const paths = [];
 
   for (const lang of LANGUAGES) {
-    const [projects, posts] = await Promise.all([getProjects(lang), getPosts(lang)]);
+    const [projects, posts, games] = await Promise.all([
+      getProjects(lang),
+      getPosts(lang),
+      getGames(lang),
+    ]);
 
     for (const project of projects) {
       paths.push({
@@ -31,6 +36,13 @@ export async function getStaticPaths() {
         props: { kind: 'post' as const },
       });
     }
+
+    for (const game of games) {
+      paths.push({
+        params: { lang, section: ROUTES[lang].games, slug: game.slug },
+        props: { kind: 'game' as const },
+      });
+    }
   }
 
   return paths;
@@ -38,8 +50,9 @@ export async function getStaticPaths() {
 
 const lang = Astro.params.lang as Language;
 const slug = Astro.params.slug as string;
-const { kind } = Astro.props as { kind: 'project' | 'post' };
+const { kind } = Astro.props as { kind: 'project' | 'post' | 'game' };
 ---
 
 {kind === 'project' && <ProjectDetail lang={lang} slug={slug} />}
 {kind === 'post' && <PostDetail lang={lang} slug={slug} />}
+{kind === 'game' && <GameDetail lang={lang} slug={slug} />}

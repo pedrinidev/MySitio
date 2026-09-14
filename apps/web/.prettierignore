@@ -1,0 +1,12 @@
+# Código de terceros (propio, pero de otro repositorio).
+#
+# MenteRush se trae tal cual desde https://github.com/pedrinidev/MenteRush
+# para que sea jugable dentro del sitio. Usa otro estilo de formato —sin
+# punto y coma, entre otras— y reformatearlo aquí lo alejaría del original:
+# cada vez que hubiera que re-sincronizar, el diff sería ilegible por
+# diferencias de comas y saltos en vez de por cambios reales.
+#
+# Las ÚNICAS adaptaciones hechas están anotadas dentro de esos archivos:
+# useTheme.ts (ya no escribe data-theme en el documento) y los dos CSS
+# globales (acotados a .menterush-root).
+src/components/islands/menterush/

@@ -1,0 +1,125 @@
+/* ADAPTADO: todo cuelga de `.menterush-root` y no de `:root`.
+ * En el MenteRush original el juego era la página entera, así que sus
+ * reglas globales (`*`, `html`, `body`, `button`) eran legítimas. Aquí es
+ * un invitado dentro del portafolio: sin acotarlas, `body{overflow:hidden}`
+ * dejaría el sitio sin scroll y `button{border:none}` borraría el estilo de
+ * todos los botones. Los .module.css no se tocan: ya los aísla el bundler.
+ */
+/*
+ * Tokens base.
+ *
+ * Tema oscuro por defecto. El claro se aplica de dos formas:
+ *  - `data-theme="light"` en el contenedor del juego cuando lo elige a mano;
+ *  - `prefers-color-scheme` cuando no ha elegido nada (sin atributo).
+ * El acento (`--accent`) lo sobreescribe el tier de combo (ver tiers.css).
+ */
+.menterush-root {
+  --bg: #06070c;
+  --bg-elevated: #101423;
+  --bg-raised: #182036;
+  --border: #232c47;
+
+  --text: #f4f6ff;
+  --text-dim: #8f97b8;
+  --danger: #ff3b5c;
+  --success: #2fe08a;
+
+  /* Color del texto que va encima del acento. */
+  --on-accent: #05070f;
+
+  --radius: 18px;
+  --radius-sm: 12px;
+
+  /* Entrada con peso: sobrepasa y vuelve. */
+  --ease-pop: cubic-bezier(0.16, 1.4, 0.3, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+
+  color-scheme: dark;
+}
+
+/* Tema claro elegido a mano. */
+.menterush-root[data-theme='light'] {
+  --bg: #eef1f8;
+  --bg-elevated: #ffffff;
+  --bg-raised: #e2e7f2;
+  --border: #cdd5e6;
+
+  --text: #0f1220;
+  --text-dim: #5b6480;
+  --danger: #d51d3c;
+  --success: #0f9d58;
+
+  --on-accent: #ffffff;
+
+  color-scheme: light;
+}
+
+/* Sin elección explícita, se sigue al sistema. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --bg: #eef1f8;
+    --bg-elevated: #ffffff;
+    --bg-raised: #e2e7f2;
+    --border: #cdd5e6;
+
+    --text: #0f1220;
+    --text-dim: #5b6480;
+    --danger: #d51d3c;
+    --success: #0f9d58;
+
+    --on-accent: #ffffff;
+
+    color-scheme: light;
+  }
+}
+
+.menterush-root,
+.menterush-root * {
+  box-sizing: border-box;
+}
+
+
+
+.menterush-root {
+  touch-action: manipulation;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  /* ADAPTADO: el original traía `overscroll-behavior: none` aquí (en <body>)
+     para que la página no rebotara al arrastrar durante la partida. Dentro
+     del sitio ese mismo valor atrapa el scroll: al pasar el cursor por
+     encima del juego la rueda deja de mover la página. Se quita para que el
+     desplazamiento encadene al documento como en cualquier otra sección. */
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 220ms var(--ease-out), color 220ms var(--ease-out);
+}
+
+.menterush-root button {
+  font-family: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  /* iOS ignora `user-scalable=no` desde hace años: sin esto, teclear rápido dos
+     cifras seguidas puede interpretarse como doble toque y hacer zoom. */
+  touch-action: manipulation;
+}
+
+/* Números y marcadores: ancho fijo para que nada baile al cambiar de cifra. */
+.menterush-root .tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Accesibilidad: el juego funciona igual, solo se apaga el movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .menterush-root,
+  .menterush-root *,
+  .menterush-root *::before,
+  .menterush-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

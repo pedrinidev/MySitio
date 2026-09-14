@@ -118,6 +118,8 @@ export interface Game {
   name: string;
   description: string;
   icon: string;
+  repo_url: string;
+  cover_url: string | null;
 }
 
 export interface QuizOption {

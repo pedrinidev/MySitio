@@ -1,0 +1,268 @@
+/* ADAPTADO: unidades del CONTENEDOR, no del viewport.
+ *
+ * El MenteRush original ocupa la pantalla entera, así que dimensionar con
+ * `vw`, `vh` y `vmin` es lo correcto allí. Dentro del portafolio el juego
+ * vive en una caja de unos 480x736 px mientras la ventana mide 1250: con
+ * `30vw` el número grande pedía 375 px de tipografía dentro de una caja de
+ * 480, y el resultado eran textos montados unos sobre otros, contenido que
+ * no cabía y efectos descolocados.
+ *
+ * `cqw`, `cqh` y `cqmin` miden contra el contenedor declarado en
+ * `.menterush-frame` (container-type: size), así que el juego se escala a
+ * su caja y se comporta igual en un móvil que dentro de esta página. Los
+ * `@media (max-height:)` pasan por lo mismo a `@container`: antes medían
+ * la ventana del navegador y no tenían nada que ver con el espacio real
+ * que tiene el juego.
+ */
+/* Estilos compartidos por los componentes pequeños del HUD y del juego. */
+
+/* ---- BigNumber ---- */
+.bigNumber {
+  /* ADAPTADO: decorativo, así que no captura el puntero. Con una tipografía
+     de cientos de píxeles su caja es enorme, y si por cualquier motivo se
+     solapa con el pie —donde vive «Salir»— se comería el clic sin que nada
+     lo delate. Un número no tiene ninguna razón para ser pulsable. */
+  pointer-events: none;
+  font-size: min(var(--num-ancho), var(--num-alto));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  /* ADAPTADO: compensa el espaciado fantasma del final.
+     `letter-spacing` se aplica DESPUÉS de cada carácter, incluido el último,
+     así que con un valor negativo la caja acaba siendo más estrecha que la
+     tinta y el número queda descentrado hacia la derecha. Devolviendo ese
+     mismo espacio como margen, la caja vuelve a coincidir con lo que se ve
+     y el centrado es real. */
+  margin-inline-end: -0.04em;
+  padding-inline-end: 0.04em;
+  color: var(--text);
+  text-shadow: 0 0 60px var(--accent-glow);
+  animation: numberIn 220ms var(--ease-pop) both;
+}
+
+.bigNumber.negative {
+  color: var(--danger);
+  text-shadow: 0 0 60px rgba(255, 59, 92, 0.5);
+}
+
+/*
+ * En iOS `vh` mide el viewport sin la barra de direcciones, así que con la barra
+ * visible el número puede pedir más alto del que hay. `svh` sí la tiene en
+ * cuenta; donde no exista, se queda la regla de arriba con `vh`.
+ */
+@supports (height: 1svh) {
+  .bigNumber {
+    font-size: min(var(--num-ancho), var(--num-alto-seguro));
+  }
+}
+
+@keyframes numberIn {
+  from {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---- TimerBar ---- */
+.timerTrack {
+  width: 100%;
+  height: 10px;
+  background: var(--bg-raised);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.timerFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 18px var(--accent-glow);
+  transform-origin: left center;
+  transition: background-color 200ms linear;
+}
+
+/* Últimos instantes: late en rojo. */
+.timerFill.urgent {
+  background: var(--danger);
+  box-shadow: 0 0 22px rgba(255, 59, 92, 0.6);
+  animation: urgentPulse 380ms ease-in-out infinite;
+}
+
+@keyframes urgentPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ---- ComboMeter ---- */
+.combo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.comboValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.comboLabel {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.multiplier {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.comboBump {
+  animation: bump 320ms var(--ease-pop);
+}
+
+@keyframes bump {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---- LivesIndicator ---- */
+.lives {
+  display: flex;
+  gap: 7px;
+}
+
+.life {
+  font-size: 17px;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 12px var(--accent-glow);
+  transition: color 240ms var(--ease-out), transform 240ms var(--ease-out);
+}
+
+.life.lost {
+  color: var(--border);
+  text-shadow: none;
+  transform: scale(0.85);
+}
+
+.life.breaking {
+  animation: breakLife 500ms var(--ease-out);
+}
+
+@keyframes breakLife {
+  0% {
+    color: var(--danger);
+    transform: scale(1.6);
+    text-shadow: 0 0 24px rgba(255, 59, 92, 0.8);
+  }
+  100% {
+    transform: scale(0.85);
+  }
+}
+
+/* ---- ScoreCounter ---- */
+.score {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* ---- Keypad ---- */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: min(340px, 88cqw);
+}
+
+.key {
+  height: clamp(52px, 9cqh, 68px);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-size: 24px;
+  font-weight: 700;
+  transition: transform 90ms var(--ease-out), background-color 120ms linear;
+  user-select: none;
+}
+
+.key:active {
+  transform: scale(0.93);
+  background: var(--bg-raised);
+}
+
+.key.accent {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--on-accent);
+}
+
+.key.muted {
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 19px;
+}
+
+.key:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ---- Entrada de respuesta ---- */
+.answerDisplay {
+  min-height: clamp(64px, 12cqh, 96px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(52px, 19cqw, 130px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.answerPlaceholder {
+  color: var(--border);
+}
+
+.caret {
+  display: inline-block;
+  width: 4px;
+  height: 0.82em;
+  margin-left: 6px;
+  background: var(--accent);
+  animation: blink 900ms steps(2, start) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+

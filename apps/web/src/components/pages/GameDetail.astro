@@ -1,0 +1,131 @@
+---
+/**
+ * La página de un juego: aquí sí se juega.
+ *
+ * El listado no monta ninguna isla; el motor del juego —y su ranking— solo
+ * se descargan al entrar aquí. Es lo que permite que la sección de Juegos
+ * pese lo mismo que cualquier otro listado.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pageTitle } from '../../lib/site';
+import QuizGame from '../islands/QuizGame';
+import SnakeGame from '../islands/SnakeGame';
+import MenteRush from '../islands/MenteRush';
+import Leaderboard from '../islands/Leaderboard';
+import { getGames, getQuizQuestions } from '../../lib/api';
+import { useTranslations, ROUTES, localePath } from '../../lib/i18n';
+import type { Language, QuizQuestion } from '../../lib/types';
+
+interface Props {
+  lang: Language;
+  slug: string;
+}
+
+const { lang, slug } = Astro.props;
+const t = useTranslations(lang);
+const other: Language = lang === 'es' ? 'en' : 'es';
+
+const games = await getGames(lang);
+const game = games.find((g) => g.slug === slug);
+if (!game) throw new Error(`No existe el juego «${slug}»`);
+
+// Las respuestas correctas NO viajan al navegador: la corrección ocurre en
+// el servidor al enviar la partida.
+let questions: QuizQuestion[] = [];
+if (game.kind === 'quiz') questions = await getQuizQuestions(game.slug, lang);
+
+// Los dos juegos envían puntuación al servidor, así que los dos tienen
+// ranking. MenteRush además conserva sus propios récords en el navegador:
+// una cosa es tu mejor marca personal y otra la tabla compartida.
+const usaRanking = true;
+---
+
+<BaseLayout
+  lang={lang}
+  title={pageTitle(game.name)}
+  description={game.description}
+  image={game.cover_url || undefined}
+  alternatePath={`${localePath(other, ROUTES[other].games)}/${slug}`}
+>
+  <article class="section container-content">
+    <a href={localePath(lang, ROUTES[lang].games)} class="back-link">
+      ← {t.games.backToList}
+    </a>
+
+    <header class="game-header">
+      <h1>{game.name}</h1>
+      <p>{game.description}</p>
+      {
+        game.repo_url && (
+          <a class="game-repo" href={game.repo_url} target="_blank" rel="noopener noreferrer">
+            {t.projects.links.repo}
+            <span aria-hidden="true"> ↗</span>
+          </a>
+        )
+      }
+    </header>
+
+    <div class:list={['game-body', !usaRanking && 'game-body-solo']}>
+      {
+        game.kind === 'quiz' ? (
+          <QuizGame client:load slug={game.slug} questions={questions} lang={lang} dict={t} />
+        ) : game.slug === 'snake' ? (
+          <SnakeGame client:load slug={game.slug} dict={t} />
+        ) : game.slug === 'menterush' ? (
+          <MenteRush client:load slug={game.slug} dict={t} />
+        ) : null
+      }
+
+      {usaRanking && <Leaderboard client:visible slug={game.slug} dict={t} />}
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.9375rem;
+  }
+  .back-link:hover {
+    color: var(--color-text);
+  }
+  .game-header h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  .game-header p {
+    margin-top: 0.75rem;
+    max-width: 55ch;
+    color: var(--color-text-muted);
+  }
+  .game-repo {
+    display: inline-block;
+    margin-top: 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-accent);
+  }
+  .game-repo:hover {
+    text-decoration: underline;
+  }
+
+  .game-body {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  /* Con ranking, el tablero y la tabla comparten fila en pantallas anchas.
+     Sin él, el juego ocupa el ancho completo en vez de dejar un hueco. */
+  @media (min-width: 60rem) {
+    .game-body {
+      grid-template-columns: minmax(0, 1fr) 18rem;
+      align-items: start;
+    }
+    .game-body-solo {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

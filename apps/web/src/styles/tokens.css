@@ -236,6 +236,20 @@ body {
   padding-block: var(--spacing-section);
 }
 
+/*
+ * La PRIMERA sección de cada página arranca más arriba.
+ *
+ * El espacio de sección separa dos bloques de contenido y ahí hace falta.
+ * Pegado a la cabecera no: la cabecera ya tiene su propio borde inferior, y
+ * con el valor completo se perdía el 21% de la pantalla antes del primer
+ * texto en escritorio y el 15% en móvil. Se sigue respirando, pero el
+ * contenido empieza donde se le espera.
+ */
+main > .section:first-child,
+main > *:first-child > .section:first-child {
+  padding-top: clamp(1.75rem, 4vw, 4rem);
+}
+
 /* Sólo para lectores de pantalla — imprescindible para el enlace de salto. */
 .sr-only {
   position: absolute;

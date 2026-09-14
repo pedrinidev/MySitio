@@ -1,0 +1,104 @@
+/*
+ * Los cinco tiers de combo. Cambiar `data-tier` en el contenedor del juego
+ * reescribe el acento y, con él, todos los efectos: color, brillo y partículas.
+ * El tier nunca se comunica solo por color (ver `ComboMeter`).
+ *
+ * Cada tier se define dos veces: los tonos del tema oscuro brillan sobre negro
+ * pero pierden contraste sobre blanco, así que el tema claro usa versiones más
+ * profundas de la misma familia.
+ */
+
+/* ---- Tema oscuro (por defecto) ---- */
+.menterush-root[data-tier='0'] {
+  --accent: #4d8dff;
+  --accent-soft: rgba(77, 141, 255, 0.16);
+  --accent-glow: rgba(77, 141, 255, 0.45);
+}
+
+.menterush-root[data-tier='1'] {
+  --accent: #2fe08a;
+  --accent-soft: rgba(47, 224, 138, 0.16);
+  --accent-glow: rgba(47, 224, 138, 0.45);
+}
+
+.menterush-root[data-tier='2'] {
+  --accent: #ffb020;
+  --accent-soft: rgba(255, 176, 32, 0.18);
+  --accent-glow: rgba(255, 176, 32, 0.5);
+}
+
+.menterush-root[data-tier='3'] {
+  --accent: #ff5ad9;
+  --accent-soft: rgba(255, 90, 217, 0.18);
+  --accent-glow: rgba(255, 90, 217, 0.5);
+}
+
+.menterush-root[data-tier='4'] {
+  --accent: #ff4433;
+  --accent-soft: rgba(255, 68, 51, 0.2);
+  --accent-glow: rgba(255, 68, 51, 0.55);
+}
+
+/* ---- Tema claro elegido a mano ---- */
+.menterush-root[data-theme='light'][data-tier='0'] {
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --accent-glow: rgba(37, 99, 235, 0.3);
+}
+
+.menterush-root[data-theme='light'][data-tier='1'] {
+  --accent: #15803d;
+  --accent-soft: rgba(21, 128, 61, 0.12);
+  --accent-glow: rgba(21, 128, 61, 0.3);
+}
+
+.menterush-root[data-theme='light'][data-tier='2'] {
+  --accent: #b45309;
+  --accent-soft: rgba(180, 83, 9, 0.14);
+  --accent-glow: rgba(180, 83, 9, 0.32);
+}
+
+.menterush-root[data-theme='light'][data-tier='3'] {
+  --accent: #c026d3;
+  --accent-soft: rgba(192, 38, 211, 0.14);
+  --accent-glow: rgba(192, 38, 211, 0.32);
+}
+
+.menterush-root[data-theme='light'][data-tier='4'] {
+  --accent: #dc2626;
+  --accent-soft: rgba(220, 38, 38, 0.14);
+  --accent-glow: rgba(220, 38, 38, 0.34);
+}
+
+/* ---- Tema claro por preferencia del sistema ---- */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) [data-tier='0'] {
+    --accent: #2563eb;
+    --accent-soft: rgba(37, 99, 235, 0.12);
+    --accent-glow: rgba(37, 99, 235, 0.3);
+  }
+
+  :root:not([data-theme='dark']) [data-tier='1'] {
+    --accent: #15803d;
+    --accent-soft: rgba(21, 128, 61, 0.12);
+    --accent-glow: rgba(21, 128, 61, 0.3);
+  }
+
+  :root:not([data-theme='dark']) [data-tier='2'] {
+    --accent: #b45309;
+    --accent-soft: rgba(180, 83, 9, 0.14);
+    --accent-glow: rgba(180, 83, 9, 0.32);
+  }
+
+  :root:not([data-theme='dark']) [data-tier='3'] {
+    --accent: #c026d3;
+    --accent-soft: rgba(192, 38, 211, 0.14);
+    --accent-glow: rgba(192, 38, 211, 0.32);
+  }
+
+  :root:not([data-theme='dark']) [data-tier='4'] {
+    --accent: #dc2626;
+    --accent-soft: rgba(220, 38, 38, 0.14);
+    --accent-glow: rgba(220, 38, 38, 0.34);
+  }
+}

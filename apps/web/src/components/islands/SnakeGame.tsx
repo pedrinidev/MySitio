@@ -37,6 +37,52 @@ const MIN_TICK_MS = 80;
 const SPEEDUP_PER_FOOD = 4;
 const INITIAL_LENGTH = 3;
 
+/**
+ * Víbora quieta que se pinta antes de empezar.
+ *
+ * Un tablero sin partida no tiene nada que enseñar: quedaba un rectángulo
+ * vacío que parecía un fallo de carga. Con una víbora dibujada se entiende
+ * de qué va el juego sin leer las instrucciones, y la sección deja de tener
+ * un hueco al lado de MenteRush, que en reposo sí muestra contenido.
+ *
+ * El recorrido tiene curvas a propósito: una línea recta no se distingue de
+ * una barra de progreso.
+ */
+const DEMO_SNAKE: Point[] = [
+  { x: 14, y: 5 },
+  { x: 13, y: 5 },
+  { x: 12, y: 5 },
+  { x: 11, y: 5 },
+  { x: 10, y: 5 },
+  { x: 9, y: 5 },
+  { x: 8, y: 5 },
+  { x: 8, y: 6 },
+  { x: 8, y: 7 },
+  { x: 8, y: 8 },
+  { x: 9, y: 8 },
+  { x: 10, y: 8 },
+  { x: 11, y: 8 },
+  { x: 12, y: 8 },
+  { x: 13, y: 8 },
+  { x: 13, y: 9 },
+  { x: 13, y: 10 },
+  { x: 12, y: 10 },
+  { x: 11, y: 10 },
+  { x: 10, y: 10 },
+  { x: 9, y: 10 },
+  { x: 8, y: 10 },
+  { x: 7, y: 10 },
+  { x: 6, y: 10 },
+  { x: 6, y: 11 },
+  { x: 6, y: 12 },
+  { x: 7, y: 12 },
+  { x: 8, y: 12 },
+  { x: 9, y: 12 },
+];
+
+/** La comida, delante de la cabeza: sugiere hacia dónde va. */
+const DEMO_FOOD: Point = { x: 17, y: 5 };
+
 /** Milisegundos por paso según lo larga que sea la víbora. */
 function tickInterval(length: number): number {
   return Math.max(MIN_TICK_MS, START_TICK_MS - (length - INITIAL_LENGTH) * SPEEDUP_PER_FOOD);
@@ -65,13 +111,13 @@ export default function SnakeGame({ slug, dict }: Props) {
   // El estado del juego vive en refs, no en useState: cambia hasta nueve
   // veces por segundo y provocar un re-render de React en cada tick sería
   // desperdiciar trabajo para redibujar un canvas que ya pintamos a mano.
-  const snake = useRef<Point[]>([]);
+  const snake = useRef<Point[]>(DEMO_SNAKE.map((p) => ({ ...p })));
   // Posiciones ANTES del último paso. Con ellas y las actuales se interpola
   // en cada fotograma: sin esto la víbora salta de casilla en casilla nueve
   // veces por segundo, que es exactamente lo que la hacía parecer una fila
   // de cuadrados en vez de un bicho que se desliza.
   const prevSnake = useRef<Point[]>([]);
-  const food = useRef<Point>({ x: 5, y: 5 });
+  const food = useRef<Point>({ ...DEMO_FOOD });
   // Destello circular al comer: posición y momento en que se disparó.
   const eaten = useRef<{ x: number; y: number; at: number } | null>(null);
   // Colores leídos del CSS una sola vez por partida: getComputedStyle en
@@ -82,6 +128,12 @@ export default function SnakeGame({ slug, dict }: Props) {
     food: '#ff9f0a',
     grid: 'rgba(255,255,255,0.04)',
     eye: '#ffffff',
+    glow: 'rgba(41,151,255,0.55)',
+    sheen: 'rgba(255,255,255,0.16)',
+    foodLight: '#ffd48a',
+    foodDark: '#b45309',
+    leaf: '#34d399',
+    headLight: '#7dc2ff',
   });
   const direction = useRef('right');
   const queued = useRef('right');
@@ -133,6 +185,12 @@ export default function SnakeGame({ slug, dict }: Props) {
       food: pick('--snake-food', '#ff9f0a'),
       grid: pick('--snake-grid', 'rgba(255,255,255,0.04)'),
       eye: pick('--snake-eye', '#ffffff'),
+      glow: pick('--snake-glow', 'rgba(41,151,255,0.55)'),
+      sheen: pick('--snake-sheen', 'rgba(255,255,255,0.16)'),
+      foodLight: pick('--snake-food-light', '#ffd48a'),
+      foodDark: pick('--snake-food-dark', '#b45309'),
+      leaf: pick('--snake-leaf', '#34d399'),
+      headLight: pick('--snake-head-light', '#7dc2ff'),
     };
   }, []);
 
@@ -155,6 +213,12 @@ export default function SnakeGame({ slug, dict }: Props) {
       food: foodColor,
       grid: gridColor,
       eye: eyeColor,
+      glow: glowColor,
+      sheen: sheenColor,
+      foodLight,
+      foodDark,
+      leaf: leafColor,
+      headLight,
     } = palette.current;
 
     // Se dibuja en píxeles CSS y el escalado a píxeles físicos lo hace la
@@ -184,27 +248,61 @@ export default function SnakeGame({ slug, dict }: Props) {
     // tiene que encontrarse de un vistazo, sin llegar a parpadear.
     const fx = (food.current.x + 0.5) * cell;
     const fy = (food.current.y + 0.5) * cell;
-    const pulse = 1 + Math.sin(now / 320) * 0.09;
-    const radius = cell * 0.3 * pulse;
+    const pulse = 1 + Math.sin(now / 320) * 0.07;
+    const radius = cell * 0.34 * pulse;
 
-    const halo = context.createRadialGradient(fx, fy, radius * 0.4, fx, fy, radius * 3.2);
+    const halo = context.createRadialGradient(fx, fy, radius * 0.3, fx, fy, radius * 3.4);
     halo.addColorStop(0, foodColor);
     halo.addColorStop(1, 'transparent');
-    context.globalAlpha = 0.28;
+    context.globalAlpha = 0.32;
     context.fillStyle = halo;
     context.beginPath();
-    context.arc(fx, fy, radius * 3.2, 0, Math.PI * 2);
+    context.arc(fx, fy, radius * 3.4, 0, Math.PI * 2);
     context.fill();
     context.globalAlpha = 1;
 
-    context.fillStyle = foodColor;
+    // Degradado esférico en vez de un relleno plano: claro arriba a la
+    // izquierda, oscuro abajo a la derecha. Un disco de un solo color se
+    // lee como una mancha; con esta luz se lee como un objeto redondo.
+    const esfera = context.createRadialGradient(
+      fx - radius * 0.35,
+      fy - radius * 0.4,
+      radius * 0.1,
+      fx,
+      fy,
+      radius * 1.15,
+    );
+    esfera.addColorStop(0, foodLight);
+    esfera.addColorStop(0.45, foodColor);
+    esfera.addColorStop(1, foodDark);
+    context.fillStyle = esfera;
     context.beginPath();
     context.arc(fx, fy, radius, 0, Math.PI * 2);
     context.fill();
-    // Reflejo: una bolita plana parece un círculo; con brillo parece un objeto.
-    context.fillStyle = 'rgba(255,255,255,0.55)';
+
+    // Hojita. La silueta se reconoce como fruta antes de que el ojo llegue
+    // a procesar el color, que es lo que hace falta cuando hay que
+    // localizarla de un vistazo mientras la víbora avanza.
+    context.save();
+    context.translate(fx + radius * 0.18, fy - radius * 0.92);
+    context.rotate(-0.5);
+    context.fillStyle = leafColor;
     context.beginPath();
-    context.arc(fx - radius * 0.3, fy - radius * 0.33, radius * 0.26, 0, Math.PI * 2);
+    context.ellipse(0, 0, radius * 0.42, radius * 0.2, 0, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+
+    context.fillStyle = 'rgba(255,255,255,0.7)';
+    context.beginPath();
+    context.ellipse(
+      fx - radius * 0.32,
+      fy - radius * 0.36,
+      radius * 0.24,
+      radius * 0.17,
+      -0.6,
+      0,
+      Math.PI * 2,
+    );
     context.fill();
 
     // ── Destello al comer ────────────────────────────────────────
@@ -243,31 +341,75 @@ export default function SnakeGame({ slug, dict }: Props) {
       };
     };
 
-    // El cuerpo es UN trazo continuo con uniones redondeadas, no una serie de
-    // rectángulos sueltos. Se pinta por tramos, de la cola a la cabeza, cada
-    // uno con su color: el degradado marca hacia dónde mira sin necesidad de
-    // ninguna flecha.
+    // El cuerpo es UN SOLO trazo, no una serie de tramos.
+    //
+    // Antes se pintaba segmento a segmento, cada uno con su color y su
+    // opacidad. El problema es que cada tramo lleva extremos redondeados,
+    // así que en cada solape aparecía un círculo más oscuro: la víbora se
+    // veía como un collar de cuentas en vez de un animal. Se notaba sobre
+    // todo en el tablero claro.
+    //
+    // Con un único `Path2D` recorrido de la cola a la cabeza no hay solapes
+    // que delatar, y el degradado de color se consigue con un gradiente
+    // lineal entre los dos extremos.
     context.lineCap = 'round';
     context.lineJoin = 'round';
-    for (let i = body.length - 1; i > 0; i--) {
-      const from = at(i);
-      const to = at(i - 1);
-      const t = body.length === 1 ? 0 : i / (body.length - 1);
-      context.strokeStyle = t > 0.5 ? tailColor : headColor;
-      context.globalAlpha = 0.55 + (1 - t) * 0.45;
-      // La cola adelgaza un poco: sugiere volumen y remata la figura.
-      context.lineWidth = cell * (0.62 + (1 - t) * 0.26);
+
+    const trazo = () => {
       context.beginPath();
-      context.moveTo(from.x, from.y);
-      context.lineTo(to.x, to.y);
-      context.stroke();
-    }
-    context.globalAlpha = 1;
+      const cola = at(body.length - 1);
+      context.moveTo(cola.x, cola.y);
+      for (let i = body.length - 2; i >= 0; i--) {
+        const p = at(i);
+        context.lineTo(p.x, p.y);
+      }
+    };
+
+    const grosor = cell * 0.74;
+
+    // Resplandor por debajo: despega la figura del tablero sin recurrir a
+    // un borde, que a este tamaño ensuciaría las curvas.
+    context.save();
+    context.shadowColor = glowColor;
+    context.shadowBlur = cell * 0.9;
+    context.strokeStyle = headColor;
+    context.lineWidth = grosor;
+    trazo();
+    context.stroke();
+    context.restore();
+
+    const cola = at(body.length - 1);
+    const cabeza = at(0);
+    const cuerpoGrad = context.createLinearGradient(cola.x, cola.y, cabeza.x, cabeza.y);
+    cuerpoGrad.addColorStop(0, tailColor);
+    cuerpoGrad.addColorStop(1, headColor);
+    context.strokeStyle = cuerpoGrad;
+    context.lineWidth = grosor;
+    trazo();
+    context.stroke();
+
+    // Lomo: una línea clara más fina por encima del mismo recorrido. Es lo
+    // que convierte una cinta plana en un cilindro.
+    context.strokeStyle = sheenColor;
+    context.lineWidth = grosor * 0.35;
+    trazo();
+    context.stroke();
 
     // ── Cabeza ───────────────────────────────────────────────────
     const h = at(0);
-    const headRadius = cell * 0.46;
-    context.fillStyle = headColor;
+    const headRadius = cell * 0.5;
+    const cabezaGrad = context.createRadialGradient(
+      h.x - headRadius * 0.3,
+      h.y - headRadius * 0.35,
+      headRadius * 0.15,
+      h.x,
+      h.y,
+      headRadius * 1.1,
+    );
+    cabezaGrad.addColorStop(0, headLight);
+    cabezaGrad.addColorStop(0.55, headColor);
+    cabezaGrad.addColorStop(1, tailColor);
+    context.fillStyle = cabezaGrad;
     context.beginPath();
     context.arc(h.x, h.y, headRadius, 0, Math.PI * 2);
     context.fill();
@@ -277,7 +419,7 @@ export default function SnakeGame({ slug, dict }: Props) {
     const v = VECTORS[direction.current] ?? VECTORS.right;
     const forward = headRadius * 0.38;
     const side = headRadius * 0.42;
-    const eyeRadius = headRadius * 0.2;
+    const eyeRadius = headRadius * 0.21;
     for (const sign of [-1, 1]) {
       const ex = h.x + v.x * forward - v.y * side * sign;
       const ey = h.y + v.y * forward + v.x * side * sign;
@@ -290,10 +432,14 @@ export default function SnakeGame({ slug, dict }: Props) {
       context.arc(
         ex + v.x * eyeRadius * 0.3,
         ey + v.y * eyeRadius * 0.3,
-        eyeRadius * 0.5,
+        eyeRadius * 0.52,
         0,
         Math.PI * 2,
       );
+      context.fill();
+      context.fillStyle = 'rgba(255,255,255,0.9)';
+      context.beginPath();
+      context.arc(ex - eyeRadius * 0.25, ey - eyeRadius * 0.3, eyeRadius * 0.2, 0, Math.PI * 2);
       context.fill();
     }
   }, []);
@@ -523,7 +669,7 @@ export default function SnakeGame({ slug, dict }: Props) {
         <canvas ref={canvasRef} width={480} height={480} aria-label="Snake" role="img" />
 
         {phase !== 'playing' && (
-          <div className="canvas-overlay">
+          <div className={`canvas-overlay ${phase === 'idle' ? 'canvas-overlay-idle' : ''}`}>
             {phase === 'over' || phase === 'saving' || phase === 'saved' ? (
               <>
                 <p className="overlay-title">{dict.games.snake.gameOver}</p>

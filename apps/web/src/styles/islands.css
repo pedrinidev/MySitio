@@ -798,6 +798,16 @@
   --snake-grid: rgb(255 255 255 / 0.04);
   --snake-eye: #ffffff;
 
+  /* El cuerpo se pinta como un tubo, no como una cinta plana: `glow` lo
+     despega del tablero, `sheen` es el lomo que le da volumen y
+     `head-light` el punto de luz de la cabeza. */
+  --snake-glow: rgb(41 151 255 / 0.55);
+  --snake-sheen: rgb(255 255 255 / 0.16);
+  --snake-head-light: #7dc2ff;
+  --snake-food-light: #ffd48a;
+  --snake-food-dark: #b45309;
+  --snake-leaf: #34d399;
+
   position: relative;
   aspect-ratio: 1;
   border-radius: var(--radius-md);
@@ -811,6 +821,12 @@
        y la cola necesita más cuerpo para no perderse contra el fondo. */
     --snake-tail: #1e40af;
     --snake-grid: rgb(6 7 10 / 0.05);
+    /* Sobre blanco el resplandor tiene que ser mucho más discreto o rodea
+       la víbora de una niebla azul, y el lomo blanco desaparecería: se
+       cambia por una luz apenas insinuada. */
+    --snake-glow: rgb(0 113 227 / 0.28);
+    --snake-sheen: rgb(255 255 255 / 0.22);
+    --snake-head-light: #5aa9f5;
   }
 }
 .canvas-wrap canvas {
@@ -832,6 +848,14 @@
   text-align: center;
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
   backdrop-filter: blur(6px);
+}
+
+/* En reposo el cristal se aclara para que la víbora de muestra se vea a
+   través. Al terminar la partida NO: ahí manda la puntuación y el formulario,
+   y un fondo translúcido los volvería difíciles de leer sobre el tablero. */
+.canvas-overlay-idle {
+  background: color-mix(in srgb, var(--color-surface) 58%, transparent);
+  backdrop-filter: blur(2px);
 }
 .overlay-title {
   font-size: 1.125rem;
@@ -907,4 +931,81 @@
 .leaderboard-empty {
   font-size: 0.875rem;
   color: var(--color-text-faint);
+}
+
+/* ───────────────────────── MenteRush ─────────────────────────────
+   El juego está escrito para ocupar la pantalla entera (`height: 100%`
+   por dentro), así que necesita que alguien le diga cuánto mide. Aquí
+   se le da una ventana con proporción fija, igual que al tablero de
+   Snake, y él se acomoda dentro.
+
+   En móvil la proporción se estira: las pantallas del juego apilan
+   marcador, número, teclado y barra de tiempo en vertical, y con una
+   ventana cuadrada no entran sin apretarse. */
+.menterush-frame {
+  position: relative;
+  /* Contenedor de consulta: es lo que permite que el juego se dimensione
+     contra ESTA caja y no contra la ventana. Sin esto sus `cqw`/`cqh` no
+     tienen contra qué medir. Ver el comentario de screens.module.css. */
+  container-type: size;
+  container-name: menterush;
+
+  /* Proporción en vez de alto fijo: así es estable —no salta al cambiar de
+     pantalla del juego— y a la vez se adapta al ancho disponible, que es
+     lo que hace que funcione igual en un móvil que en un monitor. */
+  /* Misma proporción que el lienzo de diseño (430x780): así el escalado
+     llena el marco por los dos lados y no quedan franjas vacías. */
+  aspect-ratio: 43 / 78;
+  max-width: 28rem;
+  margin-inline: auto;
+  max-height: min(82vh, 50rem);
+  min-height: 26rem;
+  background: var(--color-surface-sunken);
+}
+
+@media (max-width: 40rem) {
+  .menterush-frame {
+    max-width: none;
+    max-height: 82vh;
+  }
+}
+
+/* Tira de guardado de MenteRush: aparece al terminar una partida de reto.
+   Va fuera del marco del juego a propósito — el juego es el del
+   repositorio y esto es del portafolio. */
+.menterush-save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+}
+.menterush-save-score {
+  margin-right: auto;
+  color: var(--color-text-muted);
+}
+.menterush-save-score strong {
+  color: var(--color-text);
+  font-size: 1.25rem;
+}
+.menterush-rank {
+  color: var(--color-accent);
+}
+.menterush-saved {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+/* Lienzo del juego: tamaño fijo, centrado y escalado por JavaScript hasta
+   llenar el marco. El `transform-origin` en el centro junto al
+   `translate(-50%,-50%)` mantiene el centrado sea cual sea la escala. */
+.menterush-lienzo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
 }

@@ -2,17 +2,18 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from core.serializers import TranslatedField
+from core.serializers import AbsoluteImageField, TranslatedField
 from modules.games.models import Game, QuizOption, QuizQuestion, Score
 
 
 class GameSerializer(serializers.ModelSerializer):
     name = TranslatedField()
     description = TranslatedField()
+    cover_url = AbsoluteImageField("cover")
 
     class Meta:
         model = Game
-        fields = ("slug", "kind", "name", "description", "icon")
+        fields = ("slug", "kind", "name", "description", "icon", "repo_url", "cover_url")
 
 
 class QuizOptionSerializer(serializers.ModelSerializer):
@@ -55,6 +56,20 @@ class ScoreSubmitSerializer(serializers.Serializer):
         default=list,
         max_length=100,
     )
+    # Estadísticas extra de la partida: mejor racha, rondas superadas,
+    # aciertos. Se aceptan SOLO enteros y solo las claves conocidas — un
+    # diccionario libre desde el navegador es una invitación a guardar
+    # cualquier cosa en la base.
+    stats = serializers.DictField(
+        child=serializers.IntegerField(min_value=0, max_value=1_000_000),
+        required=False,
+        default=dict,
+    )
+
+    CLAVES_STATS = frozenset({"best_combo", "rounds", "correct", "total"})
+
+    def validate_stats(self, value: dict) -> dict:
+        return {k: v for k, v in value.items() if k in self.CLAVES_STATS}
 
 
 class QuizResultSerializer(serializers.Serializer):

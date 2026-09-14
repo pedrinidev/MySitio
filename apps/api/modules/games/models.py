@@ -35,6 +35,21 @@ class Game(OrderedModel):
     description_es = models.CharField(_("descripción (ES)"), max_length=255)
     description_en = models.CharField(_("descripción (EN)"), max_length=255, blank=True)
     icon = models.CharField(_("icono"), max_length=40, blank=True)
+    cover = models.ImageField(
+        _("portada"),
+        upload_to="games/",
+        blank=True,
+        help_text=_("La que se ve en la tarjeta del listado de juegos."),
+    )
+    repo_url = models.URLField(
+        _("repositorio"),
+        blank=True,
+        help_text=_(
+            "Si el juego tiene su propio repositorio, se enlaza junto a la "
+            "descripción. Vale para los que se desarrollaron aparte y luego "
+            "se integraron aquí."
+        ),
+    )
     enabled = models.BooleanField(_("activo"), default=True, db_index=True)
 
     max_plausible_score = models.PositiveIntegerField(

@@ -89,6 +89,7 @@ def submit_score(request, slug: str) -> Response:
         ip_hash=request_ip_hash(request),
         score=data["score"],
         duration_ms=data["duration_ms"],
+        stats=data["stats"],
         answers=data["answers"],
         language=normalize_language(request.query_params.get("lang")),
     )

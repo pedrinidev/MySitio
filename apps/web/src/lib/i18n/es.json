@@ -55,6 +55,7 @@
   "games": {
     "title": "Juegos",
     "subtitle": "Porque un portafolio también puede ser divertido.",
+    "backToList": "Volver a juegos",
     "play": "Jugar",
     "playAgain": "Jugar otra vez",
     "start": "Empezar",

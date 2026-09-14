@@ -176,6 +176,7 @@ def submit_score(
     score: int = 0,
     duration_ms: int = 0,
     answers: list[dict] | None = None,
+    stats: dict | None = None,
     language: str = "es",
 ) -> tuple[Score, ScoreResult]:
     """Valida y registra una puntuación. Único camino de escritura del módulo."""
@@ -196,7 +197,9 @@ def submit_score(
         meta=(
             {"correct": result.correct_count, "total": result.total_questions}
             if game.kind == GameKind.QUIZ
-            else {}
+            # En los arcade, lo que mande el juego ya filtrado por el
+            # serializador: mejor racha, rondas superadas, aciertos.
+            else dict(stats or {})
         ),
     )
     logger.info("Puntuación registrada: %s en %s = %s", record.nickname, game.slug, result.score)

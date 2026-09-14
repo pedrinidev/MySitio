@@ -358,6 +358,82 @@ PROJECTS = [
         "techs": ["javascript"],
         "metrics": [("Privacidad", "Todo en el navegador"), ("Dependencias", "Ninguna")],
     },
+    {
+        "slug": "menterush",
+        "title_es": "MenteRush",
+        "title_en": "MenteRush",
+        "tagline_es": (
+            "Cálculo mental a contrarreloj: sumá de cabeza antes de que se acabe el tiempo."
+        ),
+        "tagline_en": "Mental math against the clock: add in your head before time runs out.",
+        "summary_es": (
+            "Juego web de cálculo mental. Los números aparecen uno a uno, los sumás de "
+            "cabeza y tecleás el resultado contra el reloj. Encadenar aciertos multiplica "
+            "la puntuación; tres fallos y se acabó. Es el sucesor en web de MentePro."
+        ),
+        "summary_en": (
+            "Mental arithmetic web game. Numbers appear one at a time, you add them in your "
+            "head and type the result against the clock. Chaining correct answers multiplies "
+            "the score; three mistakes and it is over. The web successor to MentePro."
+        ),
+        "body_md_es": (
+            "## Qué es\n\n"
+            "Un juego de cálculo mental a contrarreloj. Aparecen números sueltos, los sumás "
+            "mentalmente y escribís el total antes de que se agote el tiempo. Los aciertos "
+            "seguidos arman un combo que multiplica la puntuación, con cinco niveles que "
+            "cambian color, sonido e intensidad de los efectos. Tres errores terminan la "
+            "partida.\n\n"
+            "## Por qué lo hice\n\n"
+            "MentePro ya hacía esto en Android, pero instalar una aplicación para practicar "
+            "treinta segundos es demasiada fricción. En la web se entra con un enlace y se "
+            "juega. El reto real no era el cálculo —eso son cuatro líneas— sino que se "
+            "**sintiera** bien: que el acierto suene, vibre y se vea, y que el fallo pese.\n\n"
+            "## Decisiones\n\n"
+            "**Sin backend ni base de datos.** Todo vive en el navegador y los récords en "
+            "`localStorage`. Un juego de partidas de treinta segundos no justifica un "
+            "servidor, y sin él no hay nada que se caiga ni datos de nadie que guardar.\n\n"
+            "**React como única dependencia de ejecución.** El sonido se sintetiza con la "
+            "Web Audio API y las partículas son canvas 2D, sin librerías. Traer un motor de "
+            "audio o de partículas habría multiplicado el peso para hacer lo mismo.\n\n"
+            "**Las reglas, en TypeScript puro.** Dificultad, puntuación y la máquina de "
+            "estados de la partida viven en `domain/`, sin saber que existe React. Por eso "
+            "se pueden probar sin montar un solo componente: son 67 pruebas entre dominio, "
+            "persistencia e interfaz."
+        ),
+        "body_md_en": (
+            "## What it is\n\n"
+            "A mental arithmetic game against the clock. Numbers appear one at a time, you add "
+            "them up in your head and type the total before time runs out. Consecutive correct "
+            "answers build a combo that multiplies the score, across five tiers that change "
+            "colour, sound and effect intensity. Three mistakes end the run.\n\n"
+            "## Why I built it\n\n"
+            "MentePro already did this on Android, but installing an app to practise for "
+            "thirty seconds is too much friction. On the web you open a link and play. The "
+            "real challenge was never the arithmetic — that is four lines — but making it "
+            "**feel** right: a hit should sound, vibrate and show, and a miss should sting.\n\n"
+            "## Decisions\n\n"
+            "**No backend, no database.** Everything lives in the browser and records go to "
+            "`localStorage`. A game of thirty-second runs does not justify a server, and "
+            "without one there is nothing to go down and nobody's data to keep.\n\n"
+            "**React as the only runtime dependency.** Sound is synthesised with the Web Audio "
+            "API and the particles are canvas 2D, no libraries. Pulling in an audio or particle "
+            "engine would have multiplied the weight to do the same thing.\n\n"
+            "**The rules in pure TypeScript.** Difficulty, scoring and the run's state machine "
+            "live in `domain/`, unaware that React exists. That is why they can be tested "
+            "without mounting a single component: 67 tests across domain, persistence and UI."
+        ),
+        "role_es": "Desarrollo completo a cargo",
+        "role_en": "Sole developer",
+        "year": 2026,
+        "featured": False,
+        "repo_url": "https://github.com/pedrinidev/MenteRush",
+        "techs": ["react", "typescript"],
+        "metrics": [
+            ("Pruebas", "67 automatizadas"),
+            ("Dependencias", "Solo React"),
+            ("Backend", "Ninguno"),
+        ],
+    },
 ]
 
 QUIZ_QUESTIONS = [
@@ -747,6 +823,21 @@ class Command(BaseCommand):
             created[slug] = tech
         return created
 
+    def _attach_game_cover(self, game) -> bool:
+        """Misma idea que `_attach_cover`, para los juegos.
+
+        Un juego sin portada cae en el marcador de iniciales de la tarjeta.
+        Funciona, pero en una rejilla donde el resto tiene captura canta.
+        """
+        if game.cover:
+            return False
+        origen = SEED_ASSETS / "games" / f"{game.slug}-cover.png"
+        if not origen.exists():
+            return False
+        with origen.open("rb") as fh:
+            game.cover.save(origen.name, File(fh), save=True)
+        return True
+
     def _attach_cover(self, project: Project) -> bool:
         """Pone la portada que viene en el repositorio, si aún no tiene.
 
@@ -928,7 +1019,35 @@ class Command(BaseCommand):
                     order=opt_order,
                 )
 
-        Game.objects.update_or_create(
+        juego_mr, _ = Game.objects.update_or_create(
+            slug="menterush",
+            defaults={
+                "kind": GameKind.ARCADE,
+                "name_es": "MenteRush",
+                "name_en": "MenteRush",
+                "description_es": (
+                    "Cálculo mental a contrarreloj: sumá los números de cabeza antes de "
+                    "que se acabe el tiempo. Encadenar aciertos multiplica la puntuación."
+                ),
+                "description_en": (
+                    "Mental math against the clock: add the numbers in your head before "
+                    "time runs out. Chaining correct answers multiplies the score."
+                ),
+                "icon": "brain",
+                "enabled": True,
+                "order": 2,
+                "repo_url": "https://github.com/pedrinidev/MenteRush",
+                # Lleva sus propios récords en el navegador y no envía
+                # puntuación al servidor, así que estos topes no se usan.
+                "max_plausible_score": 100_000,
+                "min_duration_ms": 3_000,
+            },
+        )
+
+        if self._attach_game_cover(juego_mr):
+            self.portadas += 1
+
+        juego_sn, _ = Game.objects.update_or_create(
             slug="snake",
             defaults={
                 "kind": GameKind.ARCADE,
@@ -943,3 +1062,6 @@ class Command(BaseCommand):
                 "min_duration_ms": 3_000,
             },
         )
+
+        if self._attach_game_cover(juego_sn):
+            self.portadas += 1

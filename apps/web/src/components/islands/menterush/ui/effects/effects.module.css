@@ -1,0 +1,113 @@
+/* ADAPTADO: unidades del CONTENEDOR, no del viewport.
+ *
+ * El MenteRush original ocupa la pantalla entera, así que dimensionar con
+ * `vw`, `vh` y `vmin` es lo correcto allí. Dentro del portafolio el juego
+ * vive en una caja de unos 480x736 px mientras la ventana mide 1250: con
+ * `30vw` el número grande pedía 375 px de tipografía dentro de una caja de
+ * 480, y el resultado eran textos montados unos sobre otros, contenido que
+ * no cabía y efectos descolocados.
+ *
+ * `cqw`, `cqh` y `cqmin` miden contra el contenedor declarado en
+ * `.menterush-frame` (container-type: size), así que el juego se escala a
+ * su caja y se comporta igual en un móvil que dentro de esta página. Los
+ * `@media (max-height:)` pasan por lo mismo a `@container`: antes medían
+ * la ventana del navegador y no tenían nada que ver con el espacio real
+ * que tiene el juego.
+ */
+/* Efectos que cubren el juego entero. Todos son puramente decorativos.
+   ADAPTADO: los tres eran `fixed` —anclados a la ventana, correcto cuando
+   el juego ES la pantalla—. Aquí se anclan al contenedor del juego, o el
+   destello y la viñeta cubrirían la página entera. */
+
+.flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.flashCorrect {
+  background: radial-gradient(circle at center, var(--accent-soft), transparent 70%);
+  animation: flashOut 420ms var(--ease-out) forwards;
+}
+
+.flashWrong {
+  background: radial-gradient(circle at center, rgba(255, 59, 92, 0.28), transparent 72%);
+  animation: flashOut 620ms var(--ease-out) forwards;
+}
+
+@keyframes flashOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.canvas {
+  /* ADAPTADO: era `fixed`, que ancla a la VENTANA. En el juego suelto eso
+     es correcto —ocupa la pantalla entera— pero aquí dejaba el lienzo
+     cubriendo toda la página mientras las estrellas salían del centro del
+     navegador, fuera de la caja del juego. `absolute` lo ata al contenedor
+     de la pantalla, que ya tiene `position: relative`. */
+  position: absolute;
+  inset: 0;
+  /* Imprescindible: un <canvas> es un elemento reemplazado, así que con el
+     ancho en `auto` adopta el tamaño de su búfer en vez de estirarse a `inset`.
+     Sin esto el lienzo mide más que la pantalla y las estrellas no salen del
+     centro, sino desplazadas en la misma proporción. */
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.shake {
+  animation: shake 380ms var(--ease-out);
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(-9px, 4px, 0);
+  }
+  40% {
+    transform: translate3d(8px, -5px, 0);
+  }
+  60% {
+    transform: translate3d(-6px, -3px, 0);
+  }
+  80% {
+    transform: translate3d(4px, 3px, 0);
+  }
+}
+
+/* Viñeta que late cuando la racha está alta. */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  box-shadow: inset 0 0 min(28cqw, 240px) var(--accent-soft);
+  animation: vignettePulse 1200ms ease-in-out infinite;
+}
+
+@keyframes vignettePulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* La pantalla se desatura un instante al fallar: la "cámara lenta". */
+.slowmo {
+  filter: saturate(0.25) brightness(0.7);
+  transition: filter 220ms var(--ease-out);
+}

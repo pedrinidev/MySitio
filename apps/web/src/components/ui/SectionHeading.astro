@@ -18,10 +18,28 @@ interface Props {
 
 const { eyebrow, title, subtitle, align = 'start', level = 2 } = Astro.props;
 const Heading = level === 1 ? 'h1' : 'h2';
+
+/*
+ * El antetítulo se descarta cuando repite el título.
+ *
+ * Las páginas de sección pasan el nombre del menú como antetítulo, y en la
+ * mayoría coincide con el titular: salía «PROYECTOS» en pequeño y azul y
+ * justo debajo «Proyectos» en grande. Decir dos veces lo mismo no informa,
+ * y encima empuja el contenido hacia abajo.
+ *
+ * Se comprueba por contenido y no quitando la propiedad en cada página
+ * porque la coincidencia depende del idioma: «Contacto/Hablemos» aporta
+ * contexto y se queda, mientras que «About/About me» no y desaparece.
+ */
+const a = (texto: string) => texto.trim().toLowerCase();
+const redundante =
+  !!eyebrow &&
+  (a(eyebrow) === a(title) || a(title).includes(a(eyebrow)) || a(eyebrow).includes(a(title)));
+const antetitulo = redundante ? undefined : eyebrow;
 ---
 
 <div class:list={['heading', align]} data-reveal>
-  {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+  {antetitulo && <p class="eyebrow">{antetitulo}</p>}
   <Heading class="title">{title}</Heading>
   {subtitle && <p class="subtitle">{subtitle}</p>}
 </div>

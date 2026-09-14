@@ -3,7 +3,7 @@
 import pytest
 from django.urls import reverse
 
-from modules.games.models import Game, GameKind, QuizOption, QuizQuestion
+from modules.games.models import Game, GameKind, QuizOption, QuizQuestion, Score
 
 pytestmark = pytest.mark.django_db
 
@@ -95,3 +95,64 @@ def test_arcade_submission_through_the_api(api_client):
 
     assert response.status_code == 201
     assert response.json()["score"] == 300
+
+
+@pytest.fixture
+def arcade():
+    return Game.objects.create(
+        slug="arcade",
+        kind=GameKind.ARCADE,
+        name_es="Arcade",
+        description_es="x",
+        max_plausible_score=100_000,
+        min_duration_ms=1_000,
+    )
+
+
+def test_las_estadisticas_extra_se_guardan_con_la_puntuacion(api_client, arcade):
+    """Mejor racha y rondas viajan junto al récord.
+
+    Sin ellas la tabla solo dice «cuántos puntos», que en un juego de combos
+    esconde cómo se consiguieron: 420 encadenando vale distinto que 420 a
+    trompicones.
+    """
+    token = api_client.post(reverse("v1:game-session", args=[arcade.slug])).data["token"]
+
+    respuesta = api_client.post(
+        reverse("v1:score-submit", args=[arcade.slug]),
+        {
+            "token": token,
+            "nickname": "ana",
+            "score": 420,
+            "duration_ms": 40_000,
+            "stats": {"best_combo": 7, "rounds": 12, "correct": 12, "total": 15},
+        },
+        format="json",
+    )
+    assert respuesta.status_code == 201
+    assert Score.objects.get().meta == {
+        "best_combo": 7,
+        "rounds": 12,
+        "correct": 12,
+        "total": 15,
+    }
+
+
+def test_las_claves_desconocidas_no_entran_en_la_base(api_client, arcade):
+    """El diccionario llega del navegador. Guardarlo tal cual dejaría que
+    cualquiera escribiera lo que quisiera en la base con una petición."""
+    token = api_client.post(reverse("v1:game-session", args=[arcade.slug])).data["token"]
+
+    api_client.post(
+        reverse("v1:score-submit", args=[arcade.slug]),
+        {
+            "token": token,
+            "nickname": "ana",
+            "score": 10,
+            "duration_ms": 40_000,
+            "stats": {"best_combo": 3, "basura": 999, "otra_cosa": 1},
+        },
+        format="json",
+    )
+
+    assert Score.objects.get().meta == {"best_combo": 3}

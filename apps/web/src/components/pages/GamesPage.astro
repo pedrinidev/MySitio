@@ -1,13 +1,21 @@
 ---
+/**
+ * Listado de juegos: una rejilla de tarjetas quietas.
+ *
+ * Antes esta página montaba TODOS los juegos a la vez, cada uno con su isla
+ * y su ranking. Con dos juegos ya eran varios cientos de KB de JavaScript
+ * para quien solo venía a mirar, y la página medía más de dos pantallas.
+ *
+ * Ahora se comporta como Proyectos: aquí solo hay tarjetas —cero
+ * JavaScript— y el juego se carga al entrar en su página. Quien pasa de
+ * largo no descarga ningún motor de juego.
+ */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { pageTitle } from '../../lib/site';
 import SectionHeading from '../ui/SectionHeading.astro';
-import QuizGame from '../islands/QuizGame';
-import SnakeGame from '../islands/SnakeGame';
-import Leaderboard from '../islands/Leaderboard';
-import { getGames, getQuizQuestions } from '../../lib/api';
+import { getGames } from '../../lib/api';
 import { useTranslations, ROUTES, localePath } from '../../lib/i18n';
-import type { Language, QuizQuestion } from '../../lib/types';
+import type { Language } from '../../lib/types';
 
 interface Props {
   lang: Language;
@@ -18,13 +26,7 @@ const t = useTranslations(lang);
 const other: Language = lang === 'es' ? 'en' : 'es';
 
 const games = await getGames(lang);
-
-// Las preguntas se prerenderizan; las respuestas correctas NO viajan al
-// navegador. La corrección ocurre en el servidor al enviar la partida.
-const questionsByGame = new Map<string, QuizQuestion[]>();
-for (const game of games.filter((g) => g.kind === 'quiz')) {
-  questionsByGame.set(game.slug, await getQuizQuestions(game.slug, lang));
-}
+const gamesBase = localePath(lang, ROUTES[lang].games);
 ---
 
 <BaseLayout
@@ -41,91 +43,61 @@ for (const game of games.filter((g) => g.kind === 'quiz')) {
       subtitle={t.games.subtitle}
     />
 
-    <div class="games-stack">
+    {
+      /* Mismas clases que las tarjetas de Proyectos: viven en el CSS global
+        de islands.css, así que se ven idénticas sin duplicar estilos. Lo
+        propio es la rejilla — aquí no hay carrusel ni desplazamiento. */
+    }
+    <ul class="games-grid">
       {
         games.map((game) => (
-          <article class="game-card" data-reveal>
-            <header class="game-header">
-              <h2>{game.name}</h2>
-              <p>{game.description}</p>
-            </header>
-
-            <div class="game-body">
-              {/* client:visible — el motor de Snake son varios KB de JS. Quien
-                  solo pasa por la página no debería descargarlos. */}
-              {game.kind === 'quiz' ? (
-                <QuizGame
-                  client:visible
-                  slug={game.slug}
-                  questions={questionsByGame.get(game.slug) ?? []}
-                  lang={lang}
-                  dict={t}
+          <li class="card" data-reveal>
+            <a href={`${gamesBase}/${game.slug}`} class="card-link">
+              {game.cover_url ? (
+                <img
+                  src={game.cover_url}
+                  alt=""
+                  class="cover"
+                  loading="lazy"
+                  width={640}
+                  height={400}
                 />
               ) : (
-                <SnakeGame client:visible slug={game.slug} dict={t} />
+                <div class="cover cover-placeholder" aria-hidden="true">
+                  <span>{game.name.slice(0, 2).toUpperCase()}</span>
+                </div>
               )}
 
-              <Leaderboard client:visible slug={game.slug} dict={t} />
-            </div>
-          </article>
+              <div class="card-body">
+                <h2 class="card-title">{game.name}</h2>
+                <p class="card-tagline">{game.description}</p>
+                <span class="card-cta">
+                  {t.games.play}
+                  <span aria-hidden="true"> →</span>
+                </span>
+              </div>
+            </a>
+          </li>
         ))
       }
-    </div>
+    </ul>
   </div>
 </BaseLayout>
 
 <style>
-  .games-stack {
+  .games-grid {
     display: grid;
-    gap: 3rem;
-  }
-  .game-card {
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-xl);
-    background: var(--color-surface-alt);
-    overflow: hidden;
-  }
-  .game-header {
-    padding: 1.75rem 1.75rem 0;
-  }
-  .game-header h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-  .game-header p {
-    margin-top: 0.5rem;
-    color: var(--color-text-muted);
-  }
-  .game-body {
-    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(21rem, 100%), 1fr));
     gap: 1.5rem;
-    padding: 1.75rem;
+    list-style: none;
+    margin: 2rem 0 0;
+    padding: 0;
   }
-
-  /* En un teléfono el tablero quedaba encajonado dentro de tres cajas
-     anidadas —contenedor, tarjeta y panel— que se comían 144 px de los 390
-     disponibles. Aquí el panel interior renuncia a su marco: sigue estando
-     la tarjeta exterior, y el juego gana casi cien píxeles de ancho. */
-  @media (max-width: 640px) {
-    .game-header {
-      padding: 1.25rem 1.25rem 0;
-    }
-    .game-body {
-      padding: 1rem;
-      gap: 1rem;
-    }
-    .game-body :global(.game-panel) {
-      padding: 0;
-      border: none;
-      background: transparent;
-    }
-  }
-
-  @media (min-width: 900px) {
-    .game-body {
-      grid-template-columns: 1fr 18rem;
-      align-items: start;
-    }
+  .card-cta {
+    display: inline-block;
+    margin-top: 1rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-accent);
   }
 </style>
